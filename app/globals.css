@@ -23,11 +23,11 @@
   --font-sans: var(--font-sans), system-ui, -apple-system, sans-serif;
   --font-display: var(--font-display), "Playfair Display", Georgia, "Times New Roman", serif;
 
-  /* Радиусы */
-  --radius-sm: 6px;
-  --radius: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  /* Радиусы — sharp museum aesthetic (a la fabergemuseum.ru) */
+  --radius-sm: 0;
+  --radius: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
 
   /* Тени */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
