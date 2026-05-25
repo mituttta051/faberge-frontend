@@ -1,17 +1,38 @@
 @import "tailwindcss";
 
 @theme {
+  /* Цвета — сдержанная музейная палитра под fabergemuseum.ru */
   --color-background: #ffffff;
   --color-foreground: #0a0a0a;
   --color-muted: #f5f4f0;
   --color-muted-foreground: #6b6864;
   --color-border: #e5e2dc;
+  --color-input: #e5e2dc;
+  --color-ring: #0a0a0a;
+
   --color-primary: #0a0a0a;
   --color-primary-foreground: #ffffff;
+  --color-secondary: #f5f4f0;
+  --color-secondary-foreground: #0a0a0a;
   --color-accent: #8b6f3f;
+  --color-accent-foreground: #ffffff;
+  --color-destructive: #b91c1c;
+  --color-destructive-foreground: #ffffff;
 
+  /* Шрифты — задаются переменными из next/font в layout.tsx */
   --font-sans: var(--font-sans), system-ui, -apple-system, sans-serif;
-  --font-display: var(--font-display), Georgia, "Times New Roman", serif;
+  --font-display: var(--font-display), "Playfair Display", Georgia, "Times New Roman", serif;
+
+  /* Радиусы */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Тени */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow: 0 4px 12px -2px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+  --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.12);
 }
 
 html,
@@ -27,8 +48,15 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Предотвращение зума на input в iOS Safari */
 input,
 textarea,
 select {
   font-size: 16px;
+}
+
+/* Скрыть нативный фокус — будем рисовать ring через классы */
+*:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
 }

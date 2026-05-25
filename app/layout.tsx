@@ -1,5 +1,19 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin", "cyrillic"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin", "cyrillic"],
+  variable: "--font-display",
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+});
 
 export const metadata: Metadata = {
   title: "AI-гид Музея Фаберже",
@@ -21,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" className="h-full antialiased">
+    <html lang="ru" className={`${inter.variable} ${playfair.variable} h-full antialiased`}>
       <body className="bg-background text-foreground flex min-h-full flex-col">{children}</body>
     </html>
   );
