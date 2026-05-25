@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Volume2 } from "lucide-react";
 import { Screen } from "@/components/ui/screen";
@@ -55,9 +56,11 @@ export function ExhibitView({ exhibitId }: { exhibitId: number }) {
               <p className="text-sm leading-relaxed">{exhibit.shortDescription}</p>
 
               <div className="mt-2 flex gap-2">
-                <Button variant="accent" fullWidth>
-                  Спросить AI-гида
-                </Button>
+                <Link href={`/chat?exhibit=${exhibit.id}`} className="block flex-1">
+                  <Button variant="accent" fullWidth>
+                    Спросить AI-гида
+                  </Button>
+                </Link>
                 <Button
                   variant="secondary"
                   leftIcon={<Volume2 className="h-4 w-4" />}
@@ -74,17 +77,26 @@ export function ExhibitView({ exhibitId }: { exhibitId: number }) {
                   </h2>
                   <ul className="-mx-6 mt-3 flex gap-3 overflow-x-auto px-6 pb-2">
                     {related.map((r) => (
-                      <li key={r.id} className="border-border w-40 shrink-0 cursor-pointer border">
-                        {r.photoUrl && (
-                          <Image
-                            src={r.photoUrl}
-                            alt={r.name}
-                            width={400}
-                            height={400}
-                            className="aspect-square w-full object-cover"
-                          />
-                        )}
-                        <p className="p-2 text-xs leading-tight">{r.name}</p>
+                      <li key={r.id} className="w-40 shrink-0">
+                        <Link
+                          href={`/exhibits/${r.id}`}
+                          className="border-border group/related hover:border-foreground/40 block border transition-all duration-300 ease-out hover:shadow-sm"
+                        >
+                          {r.photoUrl && (
+                            <div className="overflow-hidden">
+                              <Image
+                                src={r.photoUrl}
+                                alt={r.name}
+                                width={400}
+                                height={400}
+                                className="aspect-square w-full object-cover transition-transform duration-500 ease-out group-hover/related:scale-105"
+                              />
+                            </div>
+                          )}
+                          <p className="group-hover/related:text-accent p-2 text-xs leading-tight transition-colors">
+                            {r.name}
+                          </p>
+                        </Link>
                       </li>
                     ))}
                   </ul>
