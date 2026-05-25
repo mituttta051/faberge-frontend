@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet } from "@/components/ui/sheet";
 import { Modal } from "@/components/ui/modal";
+import { AppBar } from "@/components/ui/app-bar";
 
 export default function HomePage() {
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -19,6 +20,15 @@ export default function HomePage() {
 
   return (
     <Screen>
+      <AppBar
+        onBack={() => alert("назад")}
+        title="UI Kit"
+        right={
+          <IconButton aria-label="Поиск" variant="ghost" onClick={() => setSheetOpen(true)}>
+            <Search />
+          </IconButton>
+        }
+      />
       <main className="flex flex-1 flex-col gap-12 px-6 py-10">
         <section className="text-center">
           <p className="text-muted-foreground text-xs tracking-widest uppercase">Музей Фаберже</p>
