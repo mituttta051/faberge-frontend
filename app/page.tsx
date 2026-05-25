@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Camera, Search, ArrowRight, Volume2 } from "lucide-react";
 import { Screen } from "@/components/ui/screen";
 import { Button } from "@/components/ui/button";
@@ -9,8 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardMedia, CardBody, CardTitle, CardSubtitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Sheet } from "@/components/ui/sheet";
+import { Modal } from "@/components/ui/modal";
 
 export default function HomePage() {
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+
   return (
     <Screen>
       <main className="flex flex-1 flex-col gap-12 px-6 py-10">
@@ -27,28 +33,21 @@ export default function HomePage() {
           <Button variant="secondary" rightIcon={<ArrowRight className="h-4 w-4" />} fullWidth>
             Открыть карту
           </Button>
-          <div className="flex gap-2">
-            <Button variant="accent">Спросить AI</Button>
-            <Button variant="ghost">Отмена</Button>
-            <Button loading>Загрузка</Button>
-          </div>
-          <div className="flex items-center gap-2">
-            <IconButton aria-label="Поиск" variant="secondary">
-              <Search />
-            </IconButton>
-            <IconButton aria-label="Прослушать" variant="primary">
-              <Volume2 />
-            </IconButton>
-            <Spinner size="md" />
-          </div>
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <h2 className="text-muted-foreground text-xs tracking-widest uppercase">Sheet и Modal</h2>
+          <Button variant="secondary" onClick={() => setSheetOpen(true)} fullWidth>
+            Открыть Sheet (поиск)
+          </Button>
+          <Button variant="ghost" onClick={() => setModalOpen(true)} fullWidth>
+            Открыть Modal
+          </Button>
         </section>
 
         <section className="flex flex-col gap-3">
           <h2 className="text-muted-foreground text-xs tracking-widest uppercase">Поля ввода</h2>
           <Input placeholder="Найти экспонат или зал" leftIcon={<Search />} />
-          <Input placeholder="Заполнено" defaultValue="Синяя гостиная" />
-          <Input placeholder="С ошибкой" error defaultValue="не найдено" />
-          <Input placeholder="Заблокировано" disabled />
         </section>
 
         <section className="flex flex-col gap-3">
@@ -79,13 +78,21 @@ export default function HomePage() {
               </div>
             </CardBody>
           </Card>
+        </section>
 
-          <Card>
-            <CardBody>
-              <CardTitle>Карточка без hover</CardTitle>
-              <CardSubtitle>Просто контейнер</CardSubtitle>
-            </CardBody>
-          </Card>
+        <section className="flex flex-col gap-3">
+          <h2 className="text-muted-foreground text-xs tracking-widest uppercase">
+            Иконки и состояния
+          </h2>
+          <div className="flex items-center gap-2">
+            <IconButton aria-label="Поиск" variant="secondary">
+              <Search />
+            </IconButton>
+            <IconButton aria-label="Прослушать" variant="primary">
+              <Volume2 />
+            </IconButton>
+            <Spinner size="md" />
+          </div>
         </section>
 
         <section className="flex flex-col gap-3">
@@ -99,6 +106,35 @@ export default function HomePage() {
           </Card>
         </section>
       </main>
+
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen} title="Поиск по музею">
+        <div className="p-4">
+          <Input placeholder="Найти экспонат или зал" leftIcon={<Search />} autoFocus />
+          <div className="text-muted-foreground mt-4 text-xs tracking-widest uppercase">
+            Часто ищут
+          </div>
+          <ul className="mt-2 flex flex-col">
+            {["Синяя гостиная", "Императорское яйцо «Зимнее»", "Готический зал"].map((s) => (
+              <li
+                key={s}
+                className="hover:bg-muted -mx-2 cursor-pointer px-2 py-3 text-sm transition-colors"
+              >
+                {s}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Sheet>
+
+      <Modal open={modalOpen} onOpenChange={setModalOpen} title="Подтверждение">
+        <p className="text-sm">Очистить историю чата с AI-гидом? Это действие нельзя отменить.</p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setModalOpen(false)}>
+            Отмена
+          </Button>
+          <Button onClick={() => setModalOpen(false)}>Очистить</Button>
+        </div>
+      </Modal>
     </Screen>
   );
 }
