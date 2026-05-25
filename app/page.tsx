@@ -1,150 +1,141 @@
 "use client";
 
 import { useState } from "react";
-import { Camera, Search, ArrowRight, Volume2 } from "lucide-react";
+import Image from "next/image";
+import { Camera, Search } from "lucide-react";
 import { Screen } from "@/components/ui/screen";
+import { AppBar } from "@/components/ui/app-bar";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
-import { Spinner } from "@/components/ui/spinner";
-import { Input } from "@/components/ui/input";
-import { Card, CardMedia, CardBody, CardTitle, CardSubtitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardBody, CardMedia, CardSubtitle, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet } from "@/components/ui/sheet";
-import { Modal } from "@/components/ui/modal";
-import { AppBar } from "@/components/ui/app-bar";
+import { Input } from "@/components/ui/input";
+import { useHalls, useSearchCatalog } from "@/lib/api/hooks";
 
 export default function HomePage() {
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const { data: halls, isLoading, error } = useHalls();
+  const { data: searchData } = useSearchCatalog(searchQuery);
 
   return (
     <Screen>
       <AppBar
-        onBack={() => alert("назад")}
-        title="UI Kit"
+        title="Музей Фаберже"
         right={
-          <IconButton aria-label="Поиск" variant="ghost" onClick={() => setSheetOpen(true)}>
+          <IconButton aria-label="Поиск" variant="ghost" onClick={() => setSearchOpen(true)}>
             <Search />
           </IconButton>
         }
       />
-      <main className="flex flex-1 flex-col gap-12 px-6 py-10">
+
+      <main className="flex flex-1 flex-col gap-8 px-6 py-8">
         <section className="text-center">
-          <p className="text-muted-foreground text-xs tracking-widest uppercase">Музей Фаберже</p>
-          <h1 className="font-display mt-3 text-4xl tracking-tight">AI-гид</h1>
+          <p className="text-muted-foreground text-xs tracking-widest uppercase">AI-гид</p>
+          <h1 className="font-display mt-2 text-3xl tracking-tight">Знакомство с экспозицией</h1>
+          <p className="text-muted-foreground mt-3 text-sm">
+            11 залов, шедевры коллекции и искусственный интеллект, который расскажет историю каждого
+            экспоната.
+          </p>
         </section>
 
-        <section className="flex flex-col gap-3">
-          <h2 className="text-muted-foreground text-xs tracking-widest uppercase">Кнопки</h2>
-          <Button leftIcon={<Camera className="h-5 w-5" />} size="lg" fullWidth>
-            Распознать экспонат
-          </Button>
-          <Button variant="secondary" rightIcon={<ArrowRight className="h-4 w-4" />} fullWidth>
-            Открыть карту
-          </Button>
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <h2 className="text-muted-foreground text-xs tracking-widest uppercase">Sheet и Modal</h2>
-          <Button variant="secondary" onClick={() => setSheetOpen(true)} fullWidth>
-            Открыть Sheet (поиск)
-          </Button>
-          <Button variant="ghost" onClick={() => setModalOpen(true)} fullWidth>
-            Открыть Modal
-          </Button>
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <h2 className="text-muted-foreground text-xs tracking-widest uppercase">Поля ввода</h2>
-          <Input placeholder="Найти экспонат или зал" leftIcon={<Search />} />
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <h2 className="text-muted-foreground text-xs tracking-widest uppercase">Бэйджи</h2>
-          <div className="flex flex-wrap gap-2">
-            <Badge>Зал № 4</Badge>
-            <Badge variant="outline">1898</Badge>
-            <Badge variant="accent">Шедевр</Badge>
-            <Badge variant="destructive">Скрыт</Badge>
-          </div>
-        </section>
+        <Button
+          leftIcon={<Camera className="h-5 w-5" />}
+          size="lg"
+          fullWidth
+          onClick={() => alert("Камера будет в Б8")}
+        >
+          Распознать экспонат
+        </Button>
 
         <section className="flex flex-col gap-3">
           <h2 className="text-muted-foreground text-xs tracking-widest uppercase">
-            Карточки (наведи)
+            Залы экспозиции
           </h2>
-          <Card interactive>
-            <CardMedia className="h-40">
-              <div className="from-muted to-border h-40 w-full bg-gradient-to-br" />
-            </CardMedia>
-            <CardBody>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <CardSubtitle>Зал № 4 · Синяя гостиная</CardSubtitle>
-                  <CardTitle className="mt-1">Императорское пасхальное яйцо «Зимнее»</CardTitle>
-                </div>
-                <Badge variant="outline">1913</Badge>
-              </div>
-            </CardBody>
-          </Card>
-        </section>
 
-        <section className="flex flex-col gap-3">
-          <h2 className="text-muted-foreground text-xs tracking-widest uppercase">
-            Иконки и состояния
-          </h2>
-          <div className="flex items-center gap-2">
-            <IconButton aria-label="Поиск" variant="secondary">
-              <Search />
-            </IconButton>
-            <IconButton aria-label="Прослушать" variant="primary">
-              <Volume2 />
-            </IconButton>
-            <Spinner size="md" />
-          </div>
-        </section>
+          {isLoading && (
+            <>
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <Skeleton className="h-40 w-full" />
+                  <CardBody>
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="mt-2 h-4 w-48" />
+                  </CardBody>
+                </Card>
+              ))}
+            </>
+          )}
 
-        <section className="flex flex-col gap-3">
-          <h2 className="text-muted-foreground text-xs tracking-widest uppercase">Скелетон</h2>
-          <Card>
-            <Skeleton className="h-40 w-full" />
-            <CardBody>
-              <Skeleton className="h-3 w-24" />
-              <Skeleton className="mt-2 h-4 w-48" />
-            </CardBody>
-          </Card>
+          {error && (
+            <p className="text-destructive text-sm">Не удалось загрузить залы: {String(error)}</p>
+          )}
+
+          {halls?.map((hall) => (
+            <Card
+              key={hall.id}
+              interactive
+              onClick={() => alert(`Открыть зал ${hall.id} (роутинг в Б3)`)}
+            >
+              <CardMedia className="h-40">
+                {hall.coverImageUrl && (
+                  <Image
+                    src={hall.coverImageUrl}
+                    alt={hall.name}
+                    width={800}
+                    height={500}
+                    className="h-40 w-full object-cover"
+                  />
+                )}
+              </CardMedia>
+              <CardBody>
+                <CardSubtitle>Зал № {hall.hallNumber}</CardSubtitle>
+                <CardTitle className="mt-1">{hall.name}</CardTitle>
+                <p className="text-muted-foreground mt-2 text-xs">{hall.shortDescription}</p>
+              </CardBody>
+            </Card>
+          ))}
         </section>
       </main>
 
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen} title="Поиск по музею">
+      <Sheet open={searchOpen} onOpenChange={setSearchOpen} title="Поиск по музею">
         <div className="p-4">
-          <Input placeholder="Найти экспонат или зал" leftIcon={<Search />} autoFocus />
-          <div className="text-muted-foreground mt-4 text-xs tracking-widest uppercase">
-            Часто ищут
-          </div>
-          <ul className="mt-2 flex flex-col">
-            {["Синяя гостиная", "Императорское яйцо «Зимнее»", "Готический зал"].map((s) => (
-              <li
-                key={s}
-                className="hover:bg-muted -mx-2 cursor-pointer px-2 py-3 text-sm transition-colors"
+          <Input
+            placeholder="Найти экспонат или зал"
+            leftIcon={<Search />}
+            autoFocus
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <div className="mt-4 flex flex-col">
+            {!searchQuery && (
+              <p className="text-muted-foreground text-xs tracking-widest uppercase">
+                Начни вводить запрос
+              </p>
+            )}
+            {searchQuery && searchData?.results.length === 0 && (
+              <p className="text-muted-foreground text-sm">Ничего не найдено</p>
+            )}
+            {searchData?.results.map((r, i) => (
+              <button
+                key={i}
+                className="hover:bg-muted -mx-2 cursor-pointer px-2 py-3 text-left text-sm transition-colors"
+                onClick={() => {
+                  if (r.kind === "hall") alert(`Зал ${r.hall.name}`);
+                  else alert(`Экспонат ${r.exhibit.name}`);
+                }}
               >
-                {s}
-              </li>
+                <span className="text-muted-foreground mr-2 text-xs tracking-widest uppercase">
+                  {r.kind === "hall" ? "Зал" : "Экспонат"}
+                </span>
+                {r.kind === "hall" ? r.hall.name : r.exhibit.name}
+              </button>
             ))}
-          </ul>
+          </div>
         </div>
       </Sheet>
-
-      <Modal open={modalOpen} onOpenChange={setModalOpen} title="Подтверждение">
-        <p className="text-sm">Очистить историю чата с AI-гидом? Это действие нельзя отменить.</p>
-        <div className="mt-4 flex justify-end gap-2">
-          <Button variant="ghost" onClick={() => setModalOpen(false)}>
-            Отмена
-          </Button>
-          <Button onClick={() => setModalOpen(false)}>Очистить</Button>
-        </div>
-      </Modal>
     </Screen>
   );
 }
