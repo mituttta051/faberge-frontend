@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Camera, Search } from "lucide-react";
 import { Screen } from "@/components/ui/screen";
 import { AppBar } from "@/components/ui/app-bar";
@@ -14,8 +16,26 @@ import { Input } from "@/components/ui/input";
 import { useHalls, useSearchCatalog } from "@/lib/api/hooks";
 
 export default function HomePage() {
+  return (
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+function HomeContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // QR deep-link: /?hall=4 → /halls/4, /?exhibit=1001 → /exhibits/1001
+  useEffect(() => {
+    const hall = searchParams.get("hall");
+    const exhibit = searchParams.get("exhibit");
+    if (hall) router.replace(`/halls/${hall}`);
+    else if (exhibit) router.replace(`/exhibits/${exhibit}`);
+  }, [searchParams, router]);
 
   const { data: halls, isLoading, error } = useHalls();
   const { data: searchData } = useSearchCatalog(searchQuery);
@@ -41,14 +61,11 @@ export default function HomePage() {
           </p>
         </section>
 
-        <Button
-          leftIcon={<Camera className="h-5 w-5" />}
-          size="lg"
-          fullWidth
-          onClick={() => alert("Камера будет в Б8")}
-        >
-          Распознать экспонат
-        </Button>
+        <Link href="/recognize" className="block">
+          <Button leftIcon={<Camera className="h-5 w-5" />} size="lg" fullWidth>
+            Распознать экспонат
+          </Button>
+        </Link>
 
         <section className="flex flex-col gap-3">
           <h2 className="text-muted-foreground text-xs tracking-widest uppercase">
@@ -74,28 +91,26 @@ export default function HomePage() {
           )}
 
           {halls?.map((hall) => (
-            <Card
-              key={hall.id}
-              interactive
-              onClick={() => alert(`Открыть зал ${hall.id} (роутинг в Б3)`)}
-            >
-              <CardMedia className="h-40">
-                {hall.coverImageUrl && (
-                  <Image
-                    src={hall.coverImageUrl}
-                    alt={hall.name}
-                    width={800}
-                    height={500}
-                    className="h-40 w-full object-cover"
-                  />
-                )}
-              </CardMedia>
-              <CardBody>
-                <CardSubtitle>Зал № {hall.hallNumber}</CardSubtitle>
-                <CardTitle className="mt-1">{hall.name}</CardTitle>
-                <p className="text-muted-foreground mt-2 text-xs">{hall.shortDescription}</p>
-              </CardBody>
-            </Card>
+            <Link key={hall.id} href={`/halls/${hall.id}`} className="block">
+              <Card interactive>
+                <CardMedia className="h-40">
+                  {hall.coverImageUrl && (
+                    <Image
+                      src={hall.coverImageUrl}
+                      alt={hall.name}
+                      width={800}
+                      height={500}
+                      className="h-40 w-full object-cover"
+                    />
+                  )}
+                </CardMedia>
+                <CardBody>
+                  <CardSubtitle>Зал № {hall.hallNumber}</CardSubtitle>
+                  <CardTitle className="mt-1">{hall.name}</CardTitle>
+                  <p className="text-muted-foreground mt-2 text-xs">{hall.shortDescription}</p>
+                </CardBody>
+              </Card>
+            </Link>
           ))}
         </section>
       </main>
@@ -118,21 +133,23 @@ export default function HomePage() {
             {searchQuery && searchData?.results.length === 0 && (
               <p className="text-muted-foreground text-sm">Ничего не найдено</p>
             )}
-            {searchData?.results.map((r, i) => (
-              <button
-                key={i}
-                className="hover:bg-muted -mx-2 cursor-pointer px-2 py-3 text-left text-sm transition-colors"
-                onClick={() => {
-                  if (r.kind === "hall") alert(`Зал ${r.hall.name}`);
-                  else alert(`Экспонат ${r.exhibit.name}`);
-                }}
-              >
-                <span className="text-muted-foreground mr-2 text-xs tracking-widest uppercase">
-                  {r.kind === "hall" ? "Зал" : "Экспонат"}
-                </span>
-                {r.kind === "hall" ? r.hall.name : r.exhibit.name}
-              </button>
-            ))}
+            {searchData?.results.map((r, i) => {
+              const href = r.kind === "hall" ? `/halls/${r.hall.id}` : `/exhibits/${r.exhibit.id}`;
+              const label = r.kind === "hall" ? r.hall.name : r.exhibit.name;
+              return (
+                <Link
+                  key={i}
+                  href={href}
+                  onClick={() => setSearchOpen(false)}
+                  className="hover:bg-muted -mx-2 px-2 py-3 text-left text-sm transition-colors"
+                >
+                  <span className="text-muted-foreground mr-2 text-xs tracking-widest uppercase">
+                    {r.kind === "hall" ? "Зал" : "Экспонат"}
+                  </span>
+                  {label}
+                </Link>
+              );
+            })}
           </div>
         </div>
       </Sheet>
