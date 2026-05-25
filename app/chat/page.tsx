@@ -7,6 +7,7 @@ import { Screen } from "@/components/ui/screen";
 import { AppBar } from "@/components/ui/app-bar";
 import { Spinner } from "@/components/ui/spinner";
 import { ChatThread } from "@/components/chat/chat-thread";
+import { AudioButton } from "@/components/audio/audio-button";
 import {
   useChatSession,
   useCreateChatSession,
@@ -124,6 +125,9 @@ function ChatContent() {
           onSubmit={handleSubmit}
           header={header}
           disabled={sendMessage.isPending}
+          renderMessageTrailing={(m) =>
+            m.role === "assistant" ? <AudioButton audioKey={m.id} text={m.content} /> : null
+          }
         />
       )}
     </Screen>

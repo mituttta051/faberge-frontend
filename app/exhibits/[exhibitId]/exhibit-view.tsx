@@ -3,12 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Volume2 } from "lucide-react";
 import { Screen } from "@/components/ui/screen";
 import { AppBar } from "@/components/ui/app-bar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AudioButton } from "@/components/audio/audio-button";
 import { useExhibit, useRelatedExhibits } from "@/lib/api/hooks";
 
 export function ExhibitView({ exhibitId }: { exhibitId: number }) {
@@ -61,13 +61,11 @@ export function ExhibitView({ exhibitId }: { exhibitId: number }) {
                     Спросить AI-гида
                   </Button>
                 </Link>
-                <Button
-                  variant="secondary"
-                  leftIcon={<Volume2 className="h-4 w-4" />}
-                  aria-label="Прослушать"
-                >
-                  Прослушать
-                </Button>
+                <AudioButton
+                  audioKey={`exhibit_${exhibit.id}`}
+                  text={exhibit.shortDescription}
+                  variant="labeled"
+                />
               </div>
 
               {related && related.length > 0 && (
