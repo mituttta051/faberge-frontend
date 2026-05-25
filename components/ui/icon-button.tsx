@@ -35,7 +35,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(f
         "inline-flex shrink-0 items-center justify-center",
         "transition-all duration-300 ease-out select-none",
         "active:translate-y-px",
-        "focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
+        "focus:outline-none focus-visible:outline-none",
         "disabled:cursor-not-allowed disabled:opacity-50 disabled:active:translate-y-0",
         variants[variant],
         sizes[size],

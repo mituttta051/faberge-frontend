@@ -55,8 +55,18 @@ select {
   font-size: 16px;
 }
 
-/* Скрыть нативный фокус — будем рисовать ring через классы */
-*:focus-visible {
-  outline: 2px solid var(--color-ring);
-  outline-offset: 2px;
+/* Фокус-рамка отключена. Для input используется focus-within:border-foreground. */
+@layer base {
+  *:focus,
+  *:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  input:focus,
+  textarea:focus,
+  select:focus,
+  button:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
 }
