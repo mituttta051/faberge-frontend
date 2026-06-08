@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Screen } from "@/components/ui/screen";
 import { AppBar } from "@/components/ui/app-bar";
@@ -40,9 +41,16 @@ export function ShowcaseView({ showcaseId }: { showcaseId: number }) {
           </h2>
           <ul className="mt-3 flex flex-col gap-1">
             {exhibits?.map((e) => (
-              <li key={e.id} className="hover:bg-muted -mx-2 cursor-pointer px-2 py-2 text-sm">
-                {e.name}{" "}
-                {e.yearCreated && <span className="text-muted-foreground">· {e.yearCreated}</span>}
+              <li key={e.id}>
+                <Link
+                  href={`/exhibits/${e.id}`}
+                  className="hover:bg-muted -mx-2 block px-2 py-2 text-sm"
+                >
+                  {e.name}{" "}
+                  {e.yearCreated && (
+                    <span className="text-muted-foreground">· {e.yearCreated}</span>
+                  )}
+                </Link>
               </li>
             ))}
           </ul>

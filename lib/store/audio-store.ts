@@ -55,7 +55,7 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     try {
       let url = state._cache.get(key);
       if (!url) {
-        const res = await synthesizeSpeech(text);
+        const res = await synthesizeSpeech({ text });
         url = res.audioUrl;
         state._cache.set(key, url);
       }

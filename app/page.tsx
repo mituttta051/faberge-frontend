@@ -97,7 +97,7 @@ function HomeContent() {
                   {hall.coverImageUrl && (
                     <Image
                       src={hall.coverImageUrl}
-                      alt={hall.name}
+                      alt={hall.name ?? `Зал № ${hall.hallNumber}`}
                       width={800}
                       height={500}
                       className="h-40 w-full object-cover"
@@ -106,8 +106,10 @@ function HomeContent() {
                 </CardMedia>
                 <CardBody>
                   <CardSubtitle>Зал № {hall.hallNumber}</CardSubtitle>
-                  <CardTitle className="mt-1">{hall.name}</CardTitle>
-                  <p className="text-muted-foreground mt-2 text-xs">{hall.shortDescription}</p>
+                  <CardTitle className="mt-1">{hall.name ?? `Зал № ${hall.hallNumber}`}</CardTitle>
+                  {hall.description && (
+                    <p className="text-muted-foreground mt-2 text-xs">{hall.description}</p>
+                  )}
                 </CardBody>
               </Card>
             </Link>
@@ -130,26 +132,38 @@ function HomeContent() {
                 Начни вводить запрос
               </p>
             )}
-            {searchQuery && searchData?.results.length === 0 && (
-              <p className="text-muted-foreground text-sm">Ничего не найдено</p>
-            )}
-            {searchData?.results.map((r, i) => {
-              const href = r.kind === "hall" ? `/halls/${r.hall.id}` : `/exhibits/${r.exhibit.id}`;
-              const label = r.kind === "hall" ? r.hall.name : r.exhibit.name;
-              return (
-                <Link
-                  key={i}
-                  href={href}
-                  onClick={() => setSearchOpen(false)}
-                  className="hover:bg-muted -mx-2 px-2 py-3 text-left text-sm transition-colors"
-                >
-                  <span className="text-muted-foreground mr-2 text-xs tracking-widest uppercase">
-                    {r.kind === "hall" ? "Зал" : "Экспонат"}
-                  </span>
-                  {label}
-                </Link>
-              );
-            })}
+            {searchQuery &&
+              searchData &&
+              searchData.halls.length === 0 &&
+              searchData.exhibits.length === 0 && (
+                <p className="text-muted-foreground text-sm">Ничего не найдено</p>
+              )}
+            {searchData?.halls.map((h) => (
+              <Link
+                key={`hall-${h.id}`}
+                href={`/halls/${h.id}`}
+                onClick={() => setSearchOpen(false)}
+                className="hover:bg-muted -mx-2 px-2 py-3 text-left text-sm transition-colors"
+              >
+                <span className="text-muted-foreground mr-2 text-xs tracking-widest uppercase">
+                  Зал
+                </span>
+                {h.name ?? `Зал № ${h.hallNumber}`}
+              </Link>
+            ))}
+            {searchData?.exhibits.map((e) => (
+              <Link
+                key={`exhibit-${e.id}`}
+                href={`/exhibits/${e.id}`}
+                onClick={() => setSearchOpen(false)}
+                className="hover:bg-muted -mx-2 px-2 py-3 text-left text-sm transition-colors"
+              >
+                <span className="text-muted-foreground mr-2 text-xs tracking-widest uppercase">
+                  Экспонат
+                </span>
+                {e.name}
+              </Link>
+            ))}
           </div>
         </div>
       </Sheet>

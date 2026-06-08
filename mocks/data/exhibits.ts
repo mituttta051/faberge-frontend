@@ -1,11 +1,27 @@
-import type { Exhibit } from "@/lib/types";
-
 /**
  * Шедевры коллекции Музея Фаберже.
  * Источник: https://fabergemuseum.ru/kollekczii/shedevryi-kollekczii/
  * Фото — placehold.co (заменим на реальные при наполнении БД).
+ *
+ * Тип `MockExhibit` — внутренний для моков: включает поле `rawHistory`,
+ * которое имитирует серверное `raw_history` (через публичный API не отдаётся,
+ * но используется при генерации мокового рассказа).
  */
-export const exhibits = [
+export interface MockExhibit {
+  id: number;
+  showcaseId: number;
+  hallId: number;
+  labelSlug: string;
+  name: string;
+  yearCreated?: number;
+  masterName?: string;
+  material?: string;
+  shortDescription: string;
+  photoUrl?: string;
+  rawHistory?: string;
+}
+
+export const exhibits: MockExhibit[] = [
   // ============================
   // Синяя гостиная — императорские пасхальные яйца
   // ============================
@@ -150,4 +166,4 @@ export const exhibits = [
     photoUrl: "https://placehold.co/800x800/e5e2dc/0a0a0a?text=Sabre",
     rawHistory: "Парадная офицерская сабля гвардии Российской империи, середина XIX века.",
   },
-] satisfies Exhibit[];
+];

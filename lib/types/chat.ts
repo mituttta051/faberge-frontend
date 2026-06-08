@@ -1,4 +1,4 @@
-export type ChatRole = "user" | "assistant";
+export type ChatRole = "user" | "assistant" | "system";
 
 export interface ChatMessage {
   id: string;
@@ -13,15 +13,28 @@ export interface ChatMessage {
   suggestions?: string[];
 }
 
-/** Контекст разговора — что обсуждаем (экспонат или распознанный label). */
+/** Контекст разговора — что обсуждаем (экспонат, зал или распознанный label). */
 export interface ChatContext {
   exhibitId?: number;
+  hallId?: number;
   labelSlug?: string;
 }
 
-export interface ChatSession {
-  id: string;
+/** Ответ генерации рассказа об экспонате (POST /guide/story). */
+export interface StoryResult {
+  exhibitId?: number;
+  labelSlug?: string;
+  style?: string;
+  text: string;
+  suggestedQuestions: string[];
+  audioUrl?: string;
+  model?: string;
+}
+
+/** Ответ одного хода диалога с гидом (POST /guide/chat). */
+export interface ChatTurnResult {
+  sessionId: string;
+  answer: string;
+  suggestedQuestions: string[];
   context?: ChatContext;
-  messages: ChatMessage[];
-  createdAt: string;
 }

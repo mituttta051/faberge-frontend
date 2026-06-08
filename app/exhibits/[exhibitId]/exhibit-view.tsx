@@ -53,7 +53,9 @@ export function ExhibitView({ exhibitId }: { exhibitId: number }) {
                   <span className="tracking-widest uppercase">Материалы:</span> {exhibit.material}
                 </p>
               )}
-              <p className="text-sm leading-relaxed">{exhibit.shortDescription}</p>
+              {exhibit.shortDescription && (
+                <p className="text-sm leading-relaxed">{exhibit.shortDescription}</p>
+              )}
 
               <div className="mt-2 flex gap-2">
                 <Link href={`/chat?exhibit=${exhibit.id}`} className="block flex-1">
@@ -61,11 +63,13 @@ export function ExhibitView({ exhibitId }: { exhibitId: number }) {
                     Спросить AI-гида
                   </Button>
                 </Link>
-                <AudioButton
-                  audioKey={`exhibit_${exhibit.id}`}
-                  text={exhibit.shortDescription}
-                  variant="labeled"
-                />
+                {exhibit.shortDescription && (
+                  <AudioButton
+                    audioKey={`exhibit_${exhibit.id}`}
+                    text={exhibit.shortDescription}
+                    variant="labeled"
+                  />
+                )}
               </div>
 
               {related && related.length > 0 && (
