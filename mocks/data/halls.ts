@@ -1,10 +1,17 @@
-import type { Hall } from "@/lib/types";
-
 /**
  * 11 залов Музея Фаберже (2 этаж).
  * Источник: https://fabergemuseum.ru/posetitelyam/plan-ekspozitsii
  */
-export const halls = [
+export interface MockHall {
+  id: number;
+  hallNumber: number;
+  name: string;
+  shortDescription: string;
+  description?: string;
+  coverImageUrl?: string;
+}
+
+export const halls: MockHall[] = [
   {
     id: 1,
     hallNumber: 1,
@@ -102,4 +109,4 @@ export const halls = [
     description: "Финальный зал экспозиции: русская эмаль и парадная посуда.",
     coverImageUrl: "https://placehold.co/800x500/d4c5a0/0a0a0a?text=Beige+Hall",
   },
-] satisfies Hall[];
+];

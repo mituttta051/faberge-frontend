@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { Screen } from "@/components/ui/screen";
@@ -9,12 +9,12 @@ import { Spinner } from "@/components/ui/spinner";
 import { ChatThread } from "@/components/chat/chat-thread";
 import { AudioButton } from "@/components/audio/audio-button";
 import {
-  useChatSession,
-  useCreateChatSession,
+  useChatWithGuide,
   useExhibit,
-  useSendChatMessage,
+  useGenerateStory,
+  useHall,
 } from "@/lib/api/hooks";
-import type { ChatMessage } from "@/lib/types";
+import type { ChatContext, ChatMessage } from "@/lib/types";
 
 export default function ChatPage() {
   return (
@@ -27,46 +27,57 @@ export default function ChatPage() {
 function ChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const sid = searchParams.get("sid");
   const exhibitIdParam = searchParams.get("exhibit");
+  const hallIdParam = searchParams.get("hall");
+  const labelSlugParam = searchParams.get("label");
   const exhibitId = exhibitIdParam ? Number(exhibitIdParam) : undefined;
+  const hallId = hallIdParam ? Number(hallIdParam) : undefined;
+  const labelSlug = labelSlugParam ?? undefined;
 
-  const createSession = useCreateChatSession();
-  const sessionQuery = useChatSession(sid ?? undefined);
-  const sendMessage = useSendChatMessage(sid ?? undefined);
+  const context: ChatContext = { exhibitId, hallId, labelSlug };
+
+  const story = useGenerateStory();
+  const chat = useChatWithGuide();
   const { data: contextExhibit } = useExhibit(exhibitId);
+  const { data: contextHall } = useHall(hallId);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
-  const [thinking, setThinking] = useState(false);
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
+  const bootstrapped = useRef(false);
 
-  // Создание сессии при первом заходе (если sid ещё нет в URL)
+  // Бутстрап: для контекста экспоната — сразу генерим вступительный рассказ
+  // через /guide/story. Для зала просто стартуем пустой тред с подсказками.
   useEffect(() => {
-    if (sid) return;
-    if (createSession.isPending || createSession.isSuccess) return;
-    createSession.mutate(
-      { exhibitId },
+    if (bootstrapped.current) return;
+    if (story.isPending) return;
+    bootstrapped.current = true;
+
+    if (exhibitId === undefined && !labelSlug) {
+      // Контекст зала — заранее рассказ не нужен, диалог стартует с вопроса пользователя
+      return;
+    }
+
+    story.mutate(
+      { exhibitId, labelSlug, maxQuestions: 4 },
       {
-        onSuccess: (sess) => {
-          const params = new URLSearchParams();
-          params.set("sid", sess.id);
-          if (exhibitId) params.set("exhibit", String(exhibitId));
-          router.replace(`/chat?${params.toString()}`);
+        onSuccess: (s) => {
+          const assistantMsg: ChatMessage = {
+            id: `story_${Date.now()}`,
+            role: "assistant",
+            content: s.text,
+            createdAt: new Date().toISOString(),
+            suggestions: s.suggestedQuestions,
+            audioUrl: s.audioUrl,
+          };
+          setMessages([assistantMsg]);
         },
       },
     );
-  }, [sid, exhibitId, createSession, router]);
-
-  // Подтягиваем историю с бэка когда сессия загрузилась
-  useEffect(() => {
-    if (sessionQuery.data && messages.length === 0) {
-      setMessages(sessionQuery.data.messages);
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionQuery.data]);
+  }, [exhibitId, labelSlug]);
 
   const handleSubmit = (text: string) => {
-    if (!sid) return;
     const userMsg: ChatMessage = {
       id: `local_${Date.now()}`,
       role: "user",
@@ -74,38 +85,54 @@ function ChatContent() {
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMsg]);
-    setThinking(true);
-    sendMessage.mutate(text, {
-      onSuccess: (assistantMsg) => {
-        setMessages((prev) => [...prev, assistantMsg]);
-        setThinking(false);
+
+    chat.mutate(
+      { message: text, sessionId, context, maxQuestions: 3 },
+      {
+        onSuccess: (res) => {
+          setSessionId(res.sessionId);
+          const assistantMsg: ChatMessage = {
+            id: `msg_${Date.now()}`,
+            role: "assistant",
+            content: res.answer,
+            createdAt: new Date().toISOString(),
+            suggestions: res.suggestedQuestions,
+          };
+          setMessages((prev) => [...prev, assistantMsg]);
+        },
+        onError: () => {
+          const errorMsg: ChatMessage = {
+            id: `err_${Date.now()}`,
+            role: "assistant",
+            content: "Не получилось ответить. Попробуй ещё раз.",
+            createdAt: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, errorMsg]);
+        },
       },
-      onError: () => {
-        setThinking(false);
-        const errorMsg: ChatMessage = {
-          id: `err_${Date.now()}`,
-          role: "assistant",
-          content: "Не получилось ответить. Попробуй ещё раз.",
-          createdAt: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, errorMsg]);
-      },
-    });
+    );
   };
 
   const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
 
-  const header = contextExhibit ? (
+  const headerContext = contextExhibit
+    ? { label: contextExhibit.name, hint: contextExhibit.yearCreated?.toString() }
+    : contextHall
+      ? { label: contextHall.name ?? `Зал № ${contextHall.hallNumber}`, hint: `зал № ${contextHall.hallNumber}` }
+      : null;
+
+  const header = headerContext ? (
     <div className="border-border bg-muted/30 flex items-center gap-2 border px-3 py-2 text-xs">
       <Sparkles className="text-accent h-3.5 w-3.5 shrink-0" />
       <span className="text-muted-foreground">
-        Спрашиваешь о <strong className="text-foreground font-medium">{contextExhibit.name}</strong>
-        {contextExhibit.yearCreated && ` · ${contextExhibit.yearCreated}`}
+        Спрашиваешь о <strong className="text-foreground font-medium">{headerContext.label}</strong>
+        {headerContext.hint && ` · ${headerContext.hint}`}
       </span>
     </div>
   ) : null;
 
-  const initializing = !sid || sessionQuery.isLoading;
+  // Первоначальная загрузка рассказа — экран ожидания
+  const initializing = story.isPending && messages.length === 0;
 
   return (
     <Screen>
@@ -118,13 +145,13 @@ function ChatContent() {
       ) : (
         <ChatThread
           messages={messages}
-          thinking={thinking}
-          suggestions={!thinking && messages.length > 0 ? lastAssistant?.suggestions : undefined}
+          thinking={chat.isPending}
+          suggestions={!chat.isPending && messages.length > 0 ? lastAssistant?.suggestions : undefined}
           value={input}
           onValueChange={setInput}
           onSubmit={handleSubmit}
           header={header}
-          disabled={sendMessage.isPending}
+          disabled={chat.isPending}
           renderMessageTrailing={(m) =>
             m.role === "assistant" ? <AudioButton audioKey={m.id} text={m.content} /> : null
           }

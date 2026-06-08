@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Screen } from "@/components/ui/screen";
 import { AppBar } from "@/components/ui/app-bar";
@@ -16,7 +17,10 @@ export function HallView({ hallId }: { hallId: number }) {
 
   return (
     <Screen>
-      <AppBar onBack={() => router.back()} title={hall?.name ?? "Зал"} />
+      <AppBar
+        onBack={() => router.back()}
+        title={hall?.name ?? (hall ? `Зал № ${hall.hallNumber}` : "Зал")}
+      />
       <main className="flex flex-1 flex-col gap-6 px-6 py-6">
         {hallLoading && (
           <>
@@ -30,15 +34,21 @@ export function HallView({ hallId }: { hallId: number }) {
           <>
             <div>
               <Badge>Зал № {hall.hallNumber}</Badge>
-              <h1 className="font-display mt-3 text-2xl tracking-tight">{hall.name}</h1>
-              <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
-                {hall.description ?? hall.shortDescription}
-              </p>
+              <h1 className="font-display mt-3 text-2xl tracking-tight">
+                {hall.name ?? `Зал № ${hall.hallNumber}`}
+              </h1>
+              {hall.description && (
+                <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
+                  {hall.description}
+                </p>
+              )}
             </div>
 
-            <Button variant="accent" fullWidth>
-              Спросить AI-гида о зале
-            </Button>
+            <Link href={`/chat?hall=${hall.id}`} className="block">
+              <Button variant="accent" fullWidth>
+                Спросить AI-гида о зале
+              </Button>
+            </Link>
 
             <section>
               <h2 className="text-muted-foreground text-xs tracking-widest uppercase">
@@ -46,12 +56,14 @@ export function HallView({ hallId }: { hallId: number }) {
               </h2>
               <ul className="mt-3 flex flex-col gap-2">
                 {showcases?.map((s) => (
-                  <li
-                    key={s.id}
-                    className="border-border hover:bg-muted cursor-pointer border p-3 transition-colors"
-                  >
-                    <p className="text-muted-foreground text-xs">Витрина № {s.showcaseNumber}</p>
-                    <p className="mt-1 text-sm">{s.name ?? "Без названия"}</p>
+                  <li key={s.id}>
+                    <Link
+                      href={`/showcases/${s.id}`}
+                      className="border-border hover:bg-muted block border p-3 transition-colors"
+                    >
+                      <p className="text-muted-foreground text-xs">Витрина № {s.showcaseNumber}</p>
+                      <p className="mt-1 text-sm">{s.name ?? "Без названия"}</p>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -63,11 +75,16 @@ export function HallView({ hallId }: { hallId: number }) {
               </h2>
               <ul className="mt-3 flex flex-col gap-1">
                 {exhibits?.map((e) => (
-                  <li key={e.id} className="hover:bg-muted -mx-2 cursor-pointer px-2 py-2 text-sm">
-                    {e.name}{" "}
-                    {e.yearCreated && (
-                      <span className="text-muted-foreground">· {e.yearCreated}</span>
-                    )}
+                  <li key={e.id}>
+                    <Link
+                      href={`/exhibits/${e.id}`}
+                      className="hover:bg-muted -mx-2 block px-2 py-2 text-sm"
+                    >
+                      {e.name}{" "}
+                      {e.yearCreated && (
+                        <span className="text-muted-foreground">· {e.yearCreated}</span>
+                      )}
+                    </Link>
                   </li>
                 ))}
               </ul>

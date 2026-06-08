@@ -2,9 +2,10 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
-  createChatSession,
-  getChatSession,
+  chatWithGuide,
+  generateStory,
   getExhibit,
+  getExhibitBySlug,
   getHall,
   getHallExhibits,
   getHallShowcases,
@@ -14,9 +15,11 @@ import {
   getShowcaseExhibits,
   recognizeExhibit,
   searchCatalog,
-  sendChatMessage,
   synthesizeSpeech,
-  type CreateChatSessionInput,
+  type ChatTurnInput,
+  type RecognizeInput,
+  type SpeechInput,
+  type StoryInput,
 } from "./endpoints";
 
 // ============================
@@ -75,6 +78,14 @@ export function useExhibit(id: number | undefined) {
   });
 }
 
+export function useExhibitBySlug(labelSlug: string | undefined) {
+  return useQuery({
+    queryKey: ["exhibit", "by-slug", labelSlug],
+    queryFn: () => getExhibitBySlug(labelSlug!),
+    enabled: !!labelSlug,
+  });
+}
+
 export function useRelatedExhibits(id: number | undefined) {
   return useQuery({
     queryKey: ["exhibit", id, "related"],
@@ -97,40 +108,29 @@ export function useSearchCatalog(query: string) {
 }
 
 // ============================
-// Распознавание + чат + TTS — мутации (с состоянием выполнения)
+// Распознавание + ИИ-гид + TTS — мутации
 // ============================
 
 export function useRecognizeExhibit() {
   return useMutation({
-    mutationFn: (photo: Blob) => recognizeExhibit(photo),
+    mutationFn: (input: RecognizeInput | Blob) => recognizeExhibit(input),
   });
 }
 
-export function useCreateChatSession() {
+export function useGenerateStory() {
   return useMutation({
-    mutationFn: (input: CreateChatSessionInput) => createChatSession(input),
+    mutationFn: (input: StoryInput) => generateStory(input),
   });
 }
 
-export function useChatSession(sessionId: string | undefined) {
-  return useQuery({
-    queryKey: ["chat", sessionId],
-    queryFn: () => getChatSession(sessionId!),
-    enabled: !!sessionId,
-  });
-}
-
-export function useSendChatMessage(sessionId: string | undefined) {
+export function useChatWithGuide() {
   return useMutation({
-    mutationFn: (content: string) => {
-      if (!sessionId) throw new Error("sessionId is required");
-      return sendChatMessage(sessionId, content);
-    },
+    mutationFn: (input: ChatTurnInput) => chatWithGuide(input),
   });
 }
 
 export function useSynthesizeSpeech() {
   return useMutation({
-    mutationFn: (text: string) => synthesizeSpeech(text),
+    mutationFn: (input: SpeechInput | string) => synthesizeSpeech(input),
   });
 }

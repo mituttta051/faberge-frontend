@@ -1,9 +1,22 @@
-/** Результат распознавания фото от YOLO. */
-export interface RecognizeResult {
-  /** Slug экспоната, который вернула модель */
+import type { Exhibit } from "./exhibit";
+
+/** Кандидат при неуверенном распознавании. */
+export interface RecognitionCandidate {
   labelSlug: string;
-  /** Уверенность модели от 0 до 1 */
+  name?: string;
   confidence: number;
-  /** ID экспоната в БД, если slug найден (иначе экспонат не в базе) */
-  exhibitId?: number;
+}
+
+/** Результат распознавания фото от YOLO (POST /recognition). */
+export interface RecognizeResult {
+  /** Распознан ли экспонат с уверенностью выше порога. */
+  recognized: boolean;
+  labelSlug?: string;
+  confidence?: number;
+  /** Найденная карточка экспоната (если распознано). */
+  exhibit?: Exhibit;
+  /** Вероятные классы при неуверенном распознавании. */
+  candidates?: RecognitionCandidate[];
+  requestId?: string;
+  processingMs?: number;
 }

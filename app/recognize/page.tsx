@@ -10,21 +10,24 @@ import { AppBar } from "@/components/ui/app-bar";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { CameraCapture } from "@/components/camera/camera-capture";
-import { useExhibit, useRecognizeExhibit } from "@/lib/api/hooks";
+import { useRecognizeExhibit } from "@/lib/api/hooks";
 
-type RecognizeStep = "camera" | "recognizing" | "result" | "error";
+type RecognizeStep = "camera" | "recognizing" | "result" | "not_recognized" | "error";
 
 export default function RecognizePage() {
   const router = useRouter();
   const [step, setStep] = useState<RecognizeStep>("camera");
   const recognize = useRecognizeExhibit();
-  const { data: exhibit } = useExhibit(recognize.data?.exhibitId);
 
   const handleCapture = async (blob: Blob) => {
     setStep("recognizing");
     try {
-      await recognize.mutateAsync(blob);
-      setStep("result");
+      const result = await recognize.mutateAsync(blob);
+      if (result.recognized && result.exhibit) {
+        setStep("result");
+      } else {
+        setStep("not_recognized");
+      }
     } catch {
       setStep("error");
     }
@@ -34,6 +37,9 @@ export default function RecognizePage() {
     recognize.reset();
     setStep("camera");
   };
+
+  const exhibit = recognize.data?.exhibit;
+  const candidates = recognize.data?.candidates ?? [];
 
   return (
     <Screen>
@@ -95,6 +101,55 @@ export default function RecognizePage() {
               <Button variant="secondary" fullWidth onClick={handleRetry}>
                 Сделать ещё снимок
               </Button>
+            </div>
+          </main>
+        </>
+      )}
+
+      {step === "not_recognized" && (
+        <>
+          <AppBar onBack={handleRetry} title="Не уверены" />
+          <main className="flex flex-1 flex-col gap-4 px-6 py-6">
+            <div className="text-center">
+              <AlertCircle className="text-muted-foreground mx-auto h-12 w-12" />
+              <h1 className="font-display mt-4 text-2xl tracking-tight">Не распознали уверенно</h1>
+              <p className="text-muted-foreground mt-2 text-sm">
+                Попробуй сделать снимок крупнее или с другого ракурса.
+              </p>
+            </div>
+
+            {candidates.length > 0 && (
+              <section>
+                <h2 className="text-muted-foreground text-xs tracking-widest uppercase">
+                  Возможно, это
+                </h2>
+                <ul className="mt-3 flex flex-col gap-2">
+                  {candidates.map((c) => (
+                    <li key={c.labelSlug}>
+                      <Link
+                        href={`/chat?label=${c.labelSlug}`}
+                        className="border-border hover:bg-muted block border px-3 py-2 text-sm"
+                      >
+                        <span>{c.name ?? c.labelSlug}</span>
+                        <span className="text-muted-foreground ml-2 text-xs">
+                          {Math.round(c.confidence * 100)}%
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            <div className="mt-2 flex flex-col gap-2">
+              <Button fullWidth onClick={handleRetry}>
+                Сделать ещё снимок
+              </Button>
+              <Link href="/" className="block">
+                <Button variant="ghost" fullWidth>
+                  На главную
+                </Button>
+              </Link>
             </div>
           </main>
         </>

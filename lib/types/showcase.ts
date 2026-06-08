@@ -6,4 +6,5 @@ export interface Showcase {
   showcaseNumber: number;
   /** Опциональное название (напр. «Часы и галантерея»). Может отсутствовать. */
   name?: string;
+  exhibitCount?: number;
 }
