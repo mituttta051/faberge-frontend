@@ -9,7 +9,7 @@ import type {
   Showcase,
   StoryResult,
 } from "@/lib/types";
-import { request } from "./client";
+import { fetchAllPaged, request } from "./client";
 
 // ============================
 // Wire-типы (snake_case, как в OpenAPI).
@@ -207,8 +207,7 @@ function mapCandidate(c: WireRecognitionCandidate): RecognitionCandidate {
 // ============================
 
 export async function getHalls(): Promise<Hall[]> {
-  const res = await request<WirePaged<WireHall>>("/halls", { query: { limit: 100 } });
-  return res.items.map(mapHall);
+  return (await fetchAllPaged<WireHall>("/halls")).map(mapHall);
 }
 
 export async function getHall(id: number): Promise<Hall> {

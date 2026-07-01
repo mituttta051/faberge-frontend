@@ -90,6 +90,52 @@ function exhibitWire(e: MockExhibit) {
   };
 }
 
+/** Admin-представление экспоната: как exhibitWire, но с raw_history и *_id. */
+function adminExhibitWire(e: MockExhibit) {
+  return {
+    id: e.id,
+    showcase_id: e.showcaseId,
+    hall_id: e.hallId,
+    label_slug: e.labelSlug,
+    name: e.name,
+    year_created: e.yearCreated ?? null,
+    master_name: e.masterName ?? null,
+    material: e.material ?? null,
+    short_description: e.shortDescription ?? null,
+    image_url: e.photoUrl ?? null,
+    raw_history: e.rawHistory ?? null,
+  };
+}
+
+/** Следующий свободный id для коллекции. */
+function nextId(items: { id: number }[]): number {
+  return items.reduce((max, x) => Math.max(max, x.id), 0) + 1;
+}
+
+interface WireHallBody {
+  hall_number?: number;
+  name?: string | null;
+  description?: string | null;
+  cover_image_url?: string | null;
+}
+interface WireShowcaseBody {
+  hall_id?: number;
+  showcase_number?: number;
+  name?: string | null;
+}
+interface WireExhibitBody {
+  showcase_id?: number | null;
+  hall_id?: number | null;
+  label_slug?: string | null;
+  name?: string;
+  year_created?: number | null;
+  master_name?: string | null;
+  material?: string | null;
+  short_description?: string | null;
+  image_url?: string | null;
+  raw_history?: string | null;
+}
+
 function makeSuggestions(exhibitName: string): string[] {
   return [
     `Кто создал ${exhibitName}?`,
@@ -165,6 +211,165 @@ export const handlers = [
       ? exhibits.filter((e) => e.hallId === exhibit.hallId && e.id !== id)
       : [];
     return HttpResponse.json(paged(related.map(exhibitSummaryWire), new URL(request.url)));
+  }),
+
+  // ============================
+  // Admin: списки всех витрин / экспонатов
+  // ============================
+
+  http.get("*/showcases", async ({ request }) => {
+    await delay(NETWORK_DELAY_MS);
+    return HttpResponse.json(paged(showcases.map(showcaseWire), new URL(request.url)));
+  }),
+
+  http.get("*/exhibits", async ({ request }) => {
+    await delay(NETWORK_DELAY_MS);
+    return HttpResponse.json(paged(exhibits.map(adminExhibitWire), new URL(request.url)));
+  }),
+
+  // ============================
+  // Admin CRUD: залы
+  // ============================
+
+  http.post("*/halls", async ({ request }) => {
+    await delay(NETWORK_DELAY_MS);
+    const body = (await request.json().catch(() => ({}))) as WireHallBody;
+    const hall: MockHall = {
+      id: nextId(halls),
+      hallNumber: body.hall_number ?? nextId(halls),
+      name: body.name ?? "",
+      shortDescription: body.description ?? "",
+      description: body.description ?? undefined,
+      coverImageUrl: body.cover_image_url ?? undefined,
+    };
+    halls.push(hall);
+    return HttpResponse.json(hallWire(hall), { status: 201 });
+  }),
+
+  http.patch("*/halls/:id", async ({ params, request }) => {
+    await delay(NETWORK_DELAY_MS);
+    const hall = halls.find((h) => h.id === Number(params.id));
+    if (!hall) return HttpResponse.json({ detail: "Зал не найден." }, { status: 404 });
+    const body = (await request.json().catch(() => ({}))) as WireHallBody;
+    if (body.hall_number !== undefined) hall.hallNumber = body.hall_number;
+    if (body.name !== undefined) hall.name = body.name ?? "";
+    if (body.description !== undefined) {
+      hall.description = body.description ?? undefined;
+      hall.shortDescription = body.description ?? "";
+    }
+    if (body.cover_image_url !== undefined) hall.coverImageUrl = body.cover_image_url ?? undefined;
+    return HttpResponse.json(hallWire(hall));
+  }),
+
+  http.delete("*/halls/:id", async ({ params }) => {
+    await delay(NETWORK_DELAY_MS);
+    const id = Number(params.id);
+    const idx = halls.findIndex((h) => h.id === id);
+    if (idx === -1) return HttpResponse.json({ detail: "Зал не найден." }, { status: 404 });
+    // Каскад: удаляем витрины зала и их экспонаты.
+    const showcaseIds = showcases.filter((s) => s.hallId === id).map((s) => s.id);
+    for (let i = exhibits.length - 1; i >= 0; i--) {
+      if (exhibits[i].hallId === id || showcaseIds.includes(exhibits[i].showcaseId)) {
+        exhibits.splice(i, 1);
+      }
+    }
+    for (let i = showcases.length - 1; i >= 0; i--) {
+      if (showcases[i].hallId === id) showcases.splice(i, 1);
+    }
+    halls.splice(idx, 1);
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // ============================
+  // Admin CRUD: витрины
+  // ============================
+
+  http.post("*/showcases", async ({ request }) => {
+    await delay(NETWORK_DELAY_MS);
+    const body = (await request.json().catch(() => ({}))) as WireShowcaseBody;
+    const showcase = {
+      id: nextId(showcases),
+      hallId: body.hall_id ?? 0,
+      showcaseNumber: body.showcase_number ?? nextId(showcases),
+      name: body.name ?? "",
+    };
+    showcases.push(showcase);
+    return HttpResponse.json(showcaseWire(showcase), { status: 201 });
+  }),
+
+  http.patch("*/showcases/:id", async ({ params, request }) => {
+    await delay(NETWORK_DELAY_MS);
+    const showcase = showcases.find((s) => s.id === Number(params.id));
+    if (!showcase) return HttpResponse.json({ detail: "Витрина не найдена." }, { status: 404 });
+    const body = (await request.json().catch(() => ({}))) as WireShowcaseBody;
+    if (body.hall_id !== undefined) showcase.hallId = body.hall_id;
+    if (body.showcase_number !== undefined) showcase.showcaseNumber = body.showcase_number;
+    if (body.name !== undefined) showcase.name = body.name ?? "";
+    return HttpResponse.json(showcaseWire(showcase));
+  }),
+
+  http.delete("*/showcases/:id", async ({ params }) => {
+    await delay(NETWORK_DELAY_MS);
+    const id = Number(params.id);
+    const idx = showcases.findIndex((s) => s.id === id);
+    if (idx === -1) return HttpResponse.json({ detail: "Витрина не найдена." }, { status: 404 });
+    for (let i = exhibits.length - 1; i >= 0; i--) {
+      if (exhibits[i].showcaseId === id) exhibits.splice(i, 1);
+    }
+    showcases.splice(idx, 1);
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  // ============================
+  // Admin CRUD: экспонаты
+  // ============================
+
+  http.post("*/exhibits", async ({ request }) => {
+    await delay(NETWORK_DELAY_MS);
+    const body = (await request.json().catch(() => ({}))) as WireExhibitBody;
+    const id = nextId(exhibits);
+    const exhibit: MockExhibit = {
+      id,
+      showcaseId: body.showcase_id ?? 0,
+      hallId: body.hall_id ?? 0,
+      labelSlug: body.label_slug ?? `exhibit_${id}`,
+      name: body.name ?? "",
+      yearCreated: body.year_created ?? undefined,
+      masterName: body.master_name ?? undefined,
+      material: body.material ?? undefined,
+      shortDescription: body.short_description ?? "",
+      photoUrl: body.image_url ?? undefined,
+      rawHistory: body.raw_history ?? undefined,
+    };
+    exhibits.push(exhibit);
+    return HttpResponse.json(adminExhibitWire(exhibit), { status: 201 });
+  }),
+
+  http.patch("*/exhibits/:id", async ({ params, request }) => {
+    await delay(NETWORK_DELAY_MS);
+    const exhibit = exhibits.find((e) => e.id === Number(params.id));
+    if (!exhibit) return HttpResponse.json({ detail: "Экспонат не найден." }, { status: 404 });
+    const body = (await request.json().catch(() => ({}))) as WireExhibitBody;
+    if (body.showcase_id !== undefined) exhibit.showcaseId = body.showcase_id ?? 0;
+    if (body.hall_id !== undefined) exhibit.hallId = body.hall_id ?? 0;
+    if (body.label_slug !== undefined) exhibit.labelSlug = body.label_slug ?? exhibit.labelSlug;
+    if (body.name !== undefined) exhibit.name = body.name;
+    if (body.year_created !== undefined) exhibit.yearCreated = body.year_created ?? undefined;
+    if (body.master_name !== undefined) exhibit.masterName = body.master_name ?? undefined;
+    if (body.material !== undefined) exhibit.material = body.material ?? undefined;
+    if (body.short_description !== undefined)
+      exhibit.shortDescription = body.short_description ?? "";
+    if (body.image_url !== undefined) exhibit.photoUrl = body.image_url ?? undefined;
+    if (body.raw_history !== undefined) exhibit.rawHistory = body.raw_history ?? undefined;
+    return HttpResponse.json(adminExhibitWire(exhibit));
+  }),
+
+  http.delete("*/exhibits/:id", async ({ params }) => {
+    await delay(NETWORK_DELAY_MS);
+    const idx = exhibits.findIndex((e) => e.id === Number(params.id));
+    if (idx === -1) return HttpResponse.json({ detail: "Экспонат не найден." }, { status: 404 });
+    exhibits.splice(idx, 1);
+    return new HttpResponse(null, { status: 204 });
   }),
 
   // ============================
