@@ -10,3 +10,11 @@ export type {
 } from "./chat";
 export type { RecognizeResult, RecognitionCandidate } from "./recognize";
 export type { SearchResponse } from "./search";
+export type {
+  HallInput,
+  ShowcaseInput,
+  ExhibitInput,
+  AdminExhibit,
+  AdminSession,
+  ExhibitImage,
+} from "./admin";
