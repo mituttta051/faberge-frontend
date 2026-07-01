@@ -11,6 +11,16 @@ import { Button } from "@/components/ui/button";
 import { AudioButton } from "@/components/audio/audio-button";
 import { useExhibit, useRelatedExhibits } from "@/lib/api/hooks";
 
+const ELLIPSIS_RE = /(?:…|\.{3})\s*$/;
+
+function isTruncated(text: string): boolean {
+  return ELLIPSIS_RE.test(text.trimEnd());
+}
+
+function stripTrailingEllipsis(text: string): string {
+  return text.replace(ELLIPSIS_RE, "").trimEnd();
+}
+
 export function ExhibitView({ exhibitId }: { exhibitId: number }) {
   const router = useRouter();
   const { data: exhibit, isLoading } = useExhibit(exhibitId);
@@ -50,11 +60,27 @@ export function ExhibitView({ exhibitId }: { exhibitId: number }) {
               <h1 className="font-display text-2xl tracking-tight">{exhibit.name}</h1>
               {exhibit.material && (
                 <p className="text-muted-foreground text-xs">
-                  <span className="tracking-widest uppercase">Материалы:</span> {exhibit.material}
+                  <span className="font-medium">Материалы:</span> {exhibit.material}
                 </p>
               )}
               {exhibit.shortDescription && (
-                <p className="text-sm leading-relaxed">{exhibit.shortDescription}</p>
+                <p className="text-sm leading-relaxed">
+                  {stripTrailingEllipsis(exhibit.shortDescription)}
+                  {isTruncated(exhibit.shortDescription) && exhibit.sourceUrl && (
+                    <>
+                      {"… "}
+                      <a
+                        href={exhibit.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-accent hover:underline whitespace-nowrap"
+                      >
+                        читать полностью →
+                      </a>
+                    </>
+                  )}
+                  {isTruncated(exhibit.shortDescription) && !exhibit.sourceUrl && "…"}
+                </p>
               )}
 
               <div className="mt-2 flex gap-2">
@@ -66,7 +92,7 @@ export function ExhibitView({ exhibitId }: { exhibitId: number }) {
                 {exhibit.shortDescription && (
                   <AudioButton
                     audioKey={`exhibit_${exhibit.id}`}
-                    text={exhibit.shortDescription}
+                    text={`${exhibit.name}. ${exhibit.shortDescription}`}
                     variant="labeled"
                   />
                 )}
