@@ -104,6 +104,9 @@ export function useSearchCatalog(query: string) {
     queryKey: ["search", q],
     queryFn: () => searchCatalog(q),
     enabled: q.length > 0,
+    // Пока подгружаются новые результаты, показываем предыдущие —
+    // иначе список мигает пустым списком между вводом символов.
+    placeholderData: (prev) => prev,
   });
 }
 
