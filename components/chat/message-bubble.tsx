@@ -22,6 +22,14 @@ export function MessageBubble({ message, trailing }: MessageBubbleProps) {
         </div>
         <div className="flex-1">
           <div className="border-border bg-muted/40 inline-block max-w-full border px-3 py-2 text-sm leading-relaxed">
+            {message.imageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={message.imageUrl}
+                alt=""
+                className="border-border mb-2 max-h-48 w-auto border object-cover"
+              />
+            )}
             <Markdown>{message.content}</Markdown>
           </div>
           {trailing && <div className="mt-2">{trailing}</div>}
@@ -38,6 +46,14 @@ export function MessageBubble({ message, trailing }: MessageBubbleProps) {
           "border-primary",
         )}
       >
+        {message.imageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={message.imageUrl}
+            alt=""
+            className="border-primary-foreground/30 mb-2 max-h-48 w-auto border object-cover"
+          />
+        )}
         {message.content}
       </div>
     </div>

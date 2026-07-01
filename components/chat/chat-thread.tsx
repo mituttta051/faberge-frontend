@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Send } from "lucide-react";
+import { ImagePlus, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { IconButton } from "@/components/ui/icon-button";
 import type { ChatMessage } from "@/lib/types";
@@ -22,6 +22,8 @@ interface ChatThreadProps {
   /** Дополнительный контент над тредом (например — заголовок про какой экспонат). */
   header?: React.ReactNode;
   disabled?: boolean;
+  /** Загрузка фото — отправляется на распознавание. Если не задан, кнопка скрыта. */
+  onAttachPhoto?: (file: File) => void;
 }
 
 export function ChatThread({
@@ -34,8 +36,10 @@ export function ChatThread({
   renderMessageTrailing,
   header,
   disabled,
+  onAttachPhoto,
 }: ChatThreadProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Авто-скролл к низу при новых сообщениях / thinking
   useEffect(() => {
@@ -50,6 +54,12 @@ export function ChatThread({
     if (!text || disabled) return;
     onSubmit(text);
     onValueChange("");
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // позволяем выбрать тот же файл повторно
+    if (file && onAttachPhoto) onAttachPhoto(file);
   };
 
   return (
@@ -73,6 +83,26 @@ export function ChatThread({
         onSubmit={handleSubmit}
         className="border-border bg-background flex gap-2 border-t p-3 pb-[max(env(safe-area-inset-bottom),12px)]"
       >
+        {onAttachPhoto && (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <IconButton
+              aria-label="Прикрепить фото"
+              variant="secondary"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={disabled}
+            >
+              <ImagePlus />
+            </IconButton>
+          </>
+        )}
         <Input
           placeholder="Спросите что угодно об экспонате"
           value={value}
