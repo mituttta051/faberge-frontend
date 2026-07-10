@@ -24,6 +24,8 @@ interface ChatThreadProps {
   disabled?: boolean;
   /** Загрузка фото — отправляется на распознавание. Если не задан, кнопка скрыта. */
   onAttachPhoto?: (file: File) => void;
+  /** Дополнительный контент под подсказками (например — рекомендации похожих экспонатов). */
+  belowSuggestions?: React.ReactNode;
 }
 
 export function ChatThread({
@@ -37,6 +39,7 @@ export function ChatThread({
   header,
   disabled,
   onAttachPhoto,
+  belowSuggestions,
 }: ChatThreadProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -76,6 +79,7 @@ export function ChatThread({
               <PromptChips suggestions={suggestions} onSelect={onSubmit} />
             </div>
           )}
+          {!thinking && belowSuggestions}
         </div>
       </div>
 

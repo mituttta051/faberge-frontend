@@ -14,10 +14,12 @@ import {
   useGenerateStory,
   useHall,
   useRecognizeExhibit,
+  useRelatedExhibits,
 } from "@/lib/api/hooks";
 import { getExhibit, getExhibitBySlug } from "@/lib/api/endpoints";
 import { useChatStore } from "@/lib/store/chat-store";
 import { useSafeBack } from "@/lib/hooks/use-safe-back";
+import { RelatedRecommendations } from "@/components/chat/related-recommendations";
 import type { ChatContext, ChatExhibitCard, Exhibit } from "@/lib/types";
 
 /** Подсказки для общего чата (без контекста экспоната/зала). */
@@ -71,6 +73,7 @@ function ChatContent() {
 
   const { data: contextExhibit } = useExhibit(context?.exhibitId);
   const { data: contextHall } = useHall(context?.hallId);
+  const { data: relatedExhibits } = useRelatedExhibits(context?.exhibitId);
 
   // Реакция на URL-контекст (QR-переходы: /chat?exhibit=42, /chat?hall=3, /chat?label=slug).
   // Обновляем контекст треда и добавляем вступительный рассказ, не стирая историю.
@@ -270,6 +273,11 @@ function ChatContent() {
           disabled={busy}
           renderMessageTrailing={(m) =>
             m.role === "assistant" ? <AudioButton audioKey={m.id} text={m.content} /> : null
+          }
+          belowSuggestions={
+            relatedExhibits && relatedExhibits.length > 0 ? (
+              <RelatedRecommendations items={relatedExhibits} excludeId={context?.exhibitId} />
+            ) : null
           }
         />
       )}
