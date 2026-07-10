@@ -16,6 +16,32 @@ import { Sheet } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { useHalls, useSearchCatalog } from "@/lib/api/hooks";
 import { cn } from "@/lib/utils";
+import { CoachMarkTour, type TourStep } from "@/components/tour/coach-mark-tour";
+
+const TOUR_SEEN_KEY = "museum-tour-seen";
+
+const TOUR_STEPS: TourStep[] = [
+  {
+    selector: '[data-tour="recognize"]',
+    title: "Распознать экспонат",
+    text: "Наведи камеру на предмет, и AI подскажет, что это, и предложит рассказ.",
+  },
+  {
+    selector: '[data-tour="chat"]',
+    title: "Чат с AI-гидом",
+    text: "Спроси о любой вещи в коллекции — от истории мастера до символики орнамента.",
+  },
+  {
+    selector: '[data-tour="map"]',
+    title: "Карта залов",
+    text: "Тапни на номер зала, чтобы открыть его. Жесты — зум и перемещение.",
+  },
+  {
+    selector: '[data-tour="search"]',
+    title: "Поиск по музею",
+    text: "Ищи экспонат или зал по названию — результаты появляются на лету.",
+  },
+];
 
 // Карта тянет react-zoom-pan-pinch (клиентская), грузим только в браузере.
 const InteractiveMap = dynamic(
@@ -40,14 +66,30 @@ function HomeContent() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [hallsView, setHallsView] = useState<"map" | "list">("map");
+  const [showTour, setShowTour] = useState(false);
 
   // QR deep-link: /?hall=4 → /halls/4, /?exhibit=1001 → /exhibits/1001
   useEffect(() => {
     const hall = searchParams.get("hall");
     const exhibit = searchParams.get("exhibit");
-    if (hall) router.replace(`/halls/${hall}`);
-    else if (exhibit) router.replace(`/exhibits/${exhibit}`);
+    if (hall) {
+      router.replace(`/halls/${hall}`);
+      return;
+    }
+    if (exhibit) {
+      router.replace(`/exhibits/${exhibit}`);
+      return;
+    }
+    // Первое посещение без QR-контекста → показать тур по кнопкам.
+    if (typeof window !== "undefined" && !localStorage.getItem(TOUR_SEEN_KEY)) {
+      setShowTour(true);
+    }
   }, [searchParams, router]);
+
+  const finishTour = () => {
+    if (typeof window !== "undefined") localStorage.setItem(TOUR_SEEN_KEY, "1");
+    setShowTour(false);
+  };
 
   const { data: halls, isLoading, error } = useHalls();
   // Отложенный запрос сглаживает набор — React не бьёт по сети на каждую букву,
@@ -60,7 +102,12 @@ function HomeContent() {
       <AppBar
         title="Музей Фаберже"
         right={
-          <IconButton aria-label="Поиск" variant="ghost" onClick={() => setSearchOpen(true)}>
+          <IconButton
+            aria-label="Поиск"
+            variant="ghost"
+            onClick={() => setSearchOpen(true)}
+            data-tour="search"
+          >
             <Search />
           </IconButton>
         }
@@ -77,13 +124,13 @@ function HomeContent() {
         </section>
 
         <div className="flex flex-col gap-3">
-          <Link href="/recognize" className="block">
+          <Link href="/recognize" className="block" data-tour="recognize">
             <Button leftIcon={<Camera className="h-5 w-5" />} size="lg" fullWidth>
               Распознать экспонат
             </Button>
           </Link>
 
-          <Link href="/chat" className="block">
+          <Link href="/chat" className="block" data-tour="chat">
             <Button
               variant="secondary"
               leftIcon={<MessageCircle className="h-5 w-5" />}
@@ -139,7 +186,9 @@ function HomeContent() {
 
           {hallsView === "map" && (
             <>
-              <InteractiveMap halls={halls ?? []} />
+              <div data-tour="map">
+                <InteractiveMap halls={halls ?? []} />
+              </div>
               <p className="text-muted-foreground text-center text-xs">
                 Нажмите на номер зала, чтобы открыть его. Жесты — зум и перемещение.
               </p>
@@ -247,6 +296,8 @@ function HomeContent() {
           </div>
         </div>
       </Sheet>
+
+      {showTour && <CoachMarkTour steps={TOUR_STEPS} onDone={finishTour} />}
     </Screen>
   );
 }
