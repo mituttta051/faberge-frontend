@@ -4,6 +4,7 @@ export type { Exhibit } from "./exhibit";
 export type {
   ChatRole,
   ChatMessage,
+  ChatExhibitCard,
   ChatContext,
   StoryResult,
   ChatTurnResult,

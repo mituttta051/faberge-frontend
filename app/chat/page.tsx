@@ -15,8 +15,10 @@ import {
   useHall,
   useRecognizeExhibit,
 } from "@/lib/api/hooks";
+import { getExhibit, getExhibitBySlug } from "@/lib/api/endpoints";
 import { useChatStore } from "@/lib/store/chat-store";
-import type { ChatContext } from "@/lib/types";
+import { useSafeBack } from "@/lib/hooks/use-safe-back";
+import type { ChatContext, ChatExhibitCard, Exhibit } from "@/lib/types";
 
 /** Подсказки для общего чата (без контекста экспоната/зала). */
 const DEFAULT_PROMPTS = [
@@ -30,6 +32,16 @@ function uid(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 }
 
+function toPlaque(ex: Exhibit): ChatExhibitCard {
+  return {
+    id: ex.id,
+    name: ex.name,
+    photoUrl: ex.photoUrl,
+    yearCreated: ex.yearCreated,
+    masterName: ex.masterName,
+  };
+}
+
 export default function ChatPage() {
   return (
     <Suspense fallback={null}>
@@ -40,6 +52,7 @@ export default function ChatPage() {
 
 function ChatContent() {
   const router = useRouter();
+  const safeBack = useSafeBack();
   const searchParams = useSearchParams();
 
   const story = useGenerateStory();
@@ -81,24 +94,30 @@ function ChatContent() {
     const ctx: ChatContext = { exhibitId, hallId, labelSlug };
     store.setContext(ctx);
 
-    // Для экспоната/label — вступительный рассказ добавляем как новое сообщение
-    // (а не заменяем историю), чтобы предыдущий диалог сохранялся.
+    // Для экспоната/label — параллельно тянем сам экспонат (для плашки) и story-рассказ,
+    // потом кладём одним сообщением с плашкой + текстом. История не стирается.
     if (exhibitId !== undefined || labelSlug) {
-      story.mutate(
-        { exhibitId, labelSlug, maxQuestions: 4 },
-        {
-          onSuccess: (s) => {
-            useChatStore.getState().addMessage({
-              id: uid("story"),
-              role: "assistant",
-              content: s.text,
-              createdAt: new Date().toISOString(),
-              suggestions: s.suggestedQuestions,
-              audioUrl: s.audioUrl,
-            });
-          },
-        },
-      );
+      const exhibitPromise: Promise<Exhibit | null> = exhibitId !== undefined
+        ? getExhibit(exhibitId).catch(() => null)
+        : labelSlug
+          ? getExhibitBySlug(labelSlug).catch(() => null)
+          : Promise.resolve(null);
+      const storyPromise = story.mutateAsync({ exhibitId, labelSlug, maxQuestions: 4 });
+      Promise.all([exhibitPromise, storyPromise])
+        .then(([ex, s]) => {
+          useChatStore.getState().addMessage({
+            id: uid("story"),
+            role: "assistant",
+            content: s.text,
+            createdAt: new Date().toISOString(),
+            suggestions: s.suggestedQuestions,
+            audioUrl: s.audioUrl,
+            exhibit: ex ? toPlaque(ex) : undefined,
+          });
+        })
+        .catch(() => {
+          /* story ошибку React Query отобразит через isPending/isError; специальный fallback не нужен. */
+        });
     }
 
     // Чистим query — reload не будет плодить повторные story.
@@ -165,10 +184,10 @@ function ChatContent() {
         st.addMessage({
           id: uid("story"),
           role: "assistant",
-          content: `На фото — **${ex.name}**.\n\n${s.text}`,
+          content: s.text,
           createdAt: new Date().toISOString(),
           suggestions: s.suggestedQuestions,
-          imageUrl: ex.photoUrl,
+          exhibit: toPlaque(ex),
         });
       } else {
         const names = (res.candidates ?? []).map((c) => c.name).filter((n): n is string => !!n);
@@ -232,7 +251,7 @@ function ChatContent() {
 
   return (
     <Screen>
-      <AppBar onBack={() => router.back()} title="AI-гид" />
+      <AppBar onBack={safeBack} title="AI-гид" />
       {initializing ? (
         <main className="flex flex-1 flex-col items-center justify-center gap-3">
           <Spinner size="lg" />
