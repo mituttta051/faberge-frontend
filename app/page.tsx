@@ -5,12 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Camera, List, Map as MapIcon, MessageCircle, Search } from "lucide-react";
+import { Camera, ChevronDown, List, Map as MapIcon, MessageCircle, Search } from "lucide-react";
 import { Screen } from "@/components/ui/screen";
 import { AppBar } from "@/components/ui/app-bar";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
-import { Card, CardBody, CardMedia, CardSubtitle, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
@@ -40,6 +39,7 @@ function HomeContent() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [hallsView, setHallsView] = useState<"map" | "list">("map");
+  const [hallsSheetOpen, setHallsSheetOpen] = useState(false);
 
   // QR deep-link: /?hall=4 → /halls/4, /?exhibit=1001 → /exhibits/1001
   useEffect(() => {
@@ -147,45 +147,25 @@ function HomeContent() {
           )}
 
           {hallsView === "list" && (
-            <>
-              {isLoading &&
-                [1, 2, 3].map((i) => (
-                  <Card key={i}>
-                    <Skeleton className="h-40 w-full" />
-                    <CardBody>
-                      <Skeleton className="h-3 w-20" />
-                      <Skeleton className="mt-2 h-4 w-48" />
-                    </CardBody>
-                  </Card>
-                ))}
-
-              {halls?.map((hall) => (
-                <Link key={hall.id} href={`/halls/${hall.id}`} className="block">
-                  <Card interactive>
-                    <CardMedia className="h-40">
-                      {hall.coverImageUrl && (
-                        <Image
-                          src={hall.coverImageUrl}
-                          alt={hall.name ?? `Зал № ${hall.hallNumber}`}
-                          width={800}
-                          height={500}
-                          className="h-40 w-full object-cover"
-                        />
-                      )}
-                    </CardMedia>
-                    <CardBody>
-                      <CardSubtitle>Зал № {hall.hallNumber}</CardSubtitle>
-                      <CardTitle className="mt-1">
-                        {hall.name ?? `Зал № ${hall.hallNumber}`}
-                      </CardTitle>
-                      {hall.description && (
-                        <p className="text-muted-foreground mt-2 text-xs">{hall.description}</p>
-                      )}
-                    </CardBody>
-                  </Card>
-                </Link>
-              ))}
-            </>
+            <button
+              type="button"
+              onClick={() => setHallsSheetOpen(true)}
+              disabled={isLoading || !halls?.length}
+              className={cn(
+                "border-border bg-background hover:bg-muted flex items-center justify-between gap-3 border px-4 py-3 text-left transition-colors",
+                "disabled:cursor-not-allowed disabled:opacity-60",
+              )}
+            >
+              <span className="min-w-0 flex-1">
+                <span className="text-muted-foreground text-[10px] tracking-widest uppercase">
+                  Зал
+                </span>
+                <span className="mt-0.5 block truncate text-sm">
+                  {isLoading ? "Загружаем залы…" : `Выберите зал из ${halls?.length ?? 0}`}
+                </span>
+              </span>
+              <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
+            </button>
           )}
         </section>
       </main>
@@ -246,6 +226,45 @@ function HomeContent() {
               ))}
           </div>
         </div>
+      </Sheet>
+
+      <Sheet
+        open={hallsSheetOpen}
+        onOpenChange={setHallsSheetOpen}
+        title="Залы экспозиции"
+        className="h-[85vh]"
+      >
+        <ul className="flex flex-col">
+          {halls?.map((hall) => (
+            <li key={hall.id}>
+              <Link
+                href={`/halls/${hall.id}`}
+                onClick={() => setHallsSheetOpen(false)}
+                className="hover:bg-muted border-border flex items-center gap-3 border-b px-4 py-3 transition-colors"
+              >
+                <div className="border-border relative h-14 w-20 shrink-0 overflow-hidden border">
+                  {hall.coverImageUrl && (
+                    <Image
+                      src={hall.coverImageUrl}
+                      alt={hall.name ?? `Зал № ${hall.hallNumber}`}
+                      width={200}
+                      height={140}
+                      className="h-full w-full object-cover"
+                    />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-muted-foreground text-[10px] tracking-widest uppercase">
+                    Зал № {hall.hallNumber}
+                  </p>
+                  <p className="mt-0.5 truncate text-sm font-medium">
+                    {hall.name ?? `Зал № ${hall.hallNumber}`}
+                  </p>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </Sheet>
     </Screen>
   );
