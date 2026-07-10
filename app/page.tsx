@@ -16,6 +16,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { useHalls, useSearchCatalog } from "@/lib/api/hooks";
 import { cn } from "@/lib/utils";
+import { SiteFooter } from "@/components/layout/site-footer";
 
 // Карта тянет react-zoom-pan-pinch (клиентская), грузим только в браузере.
 const InteractiveMap = dynamic(
@@ -189,6 +190,8 @@ function HomeContent() {
           )}
         </section>
       </main>
+
+      <SiteFooter />
 
       <Sheet
         open={searchOpen}
