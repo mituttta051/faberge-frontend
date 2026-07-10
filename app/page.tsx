@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { useHalls, useSearchCatalog } from "@/lib/api/hooks";
 import { cn } from "@/lib/utils";
 import { CoachMarkTour, type TourStep } from "@/components/tour/coach-mark-tour";
+import { SiteFooter } from "@/components/layout/site-footer";
 
 const TOUR_SEEN_KEY = "museum-tour-seen";
 
@@ -218,6 +219,8 @@ function HomeContent() {
           )}
         </section>
       </main>
+
+      <SiteFooter />
 
       <Sheet
         open={searchOpen}
