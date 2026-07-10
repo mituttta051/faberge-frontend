@@ -191,6 +191,7 @@ function mapExhibit(e: WireExhibit): Exhibit {
     sourceUrl: e.source_url ?? undefined,
     hallId: e.hall?.id ?? undefined,
     showcaseId: e.showcase?.id ?? undefined,
+    showcaseNumber: e.showcase?.showcase_number ?? undefined,
   };
 }
 

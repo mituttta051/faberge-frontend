@@ -51,7 +51,10 @@ export function ExhibitView({ exhibitId }: { exhibitId: number }) {
               />
             )}
             <div className="flex flex-col gap-3 px-6">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {exhibit.showcaseNumber !== undefined && (
+                  <Badge>Витрина № {exhibit.showcaseNumber}</Badge>
+                )}
                 {exhibit.yearCreated && <Badge variant="outline">{exhibit.yearCreated}</Badge>}
                 {exhibit.masterName && (
                   <span className="text-muted-foreground text-xs">{exhibit.masterName}</span>

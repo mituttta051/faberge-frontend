@@ -14,6 +14,10 @@ export function HallView({ hallId }: { hallId: number }) {
   const { data: hall, isLoading: hallLoading } = useHall(hallId);
   const { data: showcases } = useHallShowcases(hallId);
   const { data: exhibits } = useHallExhibits(hallId);
+  // Джойн: у summary-экспоната есть showcaseId, а showcase_number приходит только у витрины,
+  // поэтому строим Map на клиенте — обе выборки уже загружены.
+  const showcaseNumberById = new Map<number, number>();
+  showcases?.forEach((s) => showcaseNumberById.set(s.id, s.showcaseNumber));
 
   return (
     <Screen>
@@ -74,19 +78,29 @@ export function HallView({ hallId }: { hallId: number }) {
                 Экспонаты зала ({exhibits?.length ?? 0})
               </h2>
               <ul className="mt-3 flex flex-col gap-1">
-                {exhibits?.map((e) => (
-                  <li key={e.id}>
-                    <Link
-                      href={`/exhibits/${e.id}`}
-                      className="hover:bg-muted -mx-2 block px-2 py-2 text-sm"
-                    >
-                      {e.name}{" "}
-                      {e.yearCreated && (
-                        <span className="text-muted-foreground">· {e.yearCreated}</span>
-                      )}
-                    </Link>
-                  </li>
-                ))}
+                {exhibits?.map((e) => {
+                  const num = e.showcaseId ? showcaseNumberById.get(e.showcaseId) : undefined;
+                  return (
+                    <li key={e.id}>
+                      <Link
+                        href={`/exhibits/${e.id}`}
+                        className="hover:bg-muted -mx-2 flex items-baseline gap-2 px-2 py-2 text-sm"
+                      >
+                        {num !== undefined && (
+                          <span className="text-muted-foreground font-mono text-xs tabular-nums">
+                            {num}
+                          </span>
+                        )}
+                        <span className="min-w-0 flex-1">
+                          {e.name}
+                          {e.yearCreated && (
+                            <span className="text-muted-foreground"> · {e.yearCreated}</span>
+                          )}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           </>
