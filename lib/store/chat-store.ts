@@ -4,15 +4,16 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ChatContext, ChatMessage } from "@/lib/types";
 
-/** Один сохранённый чат — живёт локально (бэк не отдаёт историю списком). */
+/**
+ * Единственный локальный тред посетителя. Один на устройство/браузер.
+ * История между экспонатами не сбрасывается — контекст меняется, сообщения копятся.
+ */
 export interface ChatSession {
-  /** Локальный стабильный id чата (для маршрута /chat?session=…). */
+  /** Локальный стабильный id (переживает reload). */
   id: string;
   /** session_id с бэка (/guide/chat). Появляется после первого ответа гида. */
   serverSessionId?: string;
-  /** Заголовок для списка истории. */
-  title: string;
-  /** О чём говорим: экспонат, зал или распознанный label. */
+  /** Текущий контекст: последний экспонат/зал/label, о котором говорим. */
   context?: ChatContext;
   messages: ChatMessage[];
   createdAt: string;
@@ -20,25 +21,16 @@ export interface ChatSession {
 }
 
 interface ChatStore {
-  /** Чаты по локальному id. */
-  chats: Record<string, ChatSession>;
-  /** Порядок отображения в истории — свежие сверху. */
-  order: string[];
+  chat: ChatSession | null;
 
-  /** Создать пустой чат, вернуть его локальный id. */
-  createChat: (init?: { id?: string; title?: string; context?: ChatContext }) => string;
-  getChat: (id: string) => ChatSession | undefined;
-  /** Полный список для экрана истории (свежие сверху). */
-  list: () => ChatSession[];
-
-  setMessages: (id: string, messages: ChatMessage[]) => void;
-  addMessage: (id: string, message: ChatMessage) => void;
-  /** Заменить последнее сообщение (например — плейсхолдер на финальный ответ). */
-  updateMessage: (id: string, messageId: string, patch: Partial<ChatMessage>) => void;
-  setServerSessionId: (id: string, serverSessionId: string) => void;
-  setContext: (id: string, context: ChatContext) => void;
-  setTitle: (id: string, title: string) => void;
-  deleteChat: (id: string) => void;
+  /** Гарантирует, что тред существует, и возвращает его. */
+  getOrCreate: () => ChatSession;
+  setContext: (context: ChatContext) => void;
+  addMessage: (message: ChatMessage) => void;
+  updateMessage: (messageId: string, patch: Partial<ChatMessage>) => void;
+  setServerSessionId: (serverSessionId: string) => void;
+  /** Полный сброс истории (например, кнопка «Начать заново» в будущем). */
+  clear: () => void;
 }
 
 function nowIso(): string {
@@ -50,133 +42,94 @@ function newId(): string {
   return `chat_${Math.random().toString(36).slice(2)}`;
 }
 
+function emptyChat(): ChatSession {
+  const ts = nowIso();
+  return { id: newId(), messages: [], createdAt: ts, updatedAt: ts };
+}
+
 export const useChatStore = create<ChatStore>()(
   persist(
     (set, get) => ({
-      chats: {},
-      order: [],
+      chat: null,
 
-      createChat(init) {
-        const id = init?.id ?? newId();
-        const ts = nowIso();
-        set((s) => ({
-          chats: {
-            ...s.chats,
-            [id]: {
-              id,
-              title: init?.title ?? "Новый чат",
-              context: init?.context,
-              messages: [],
-              createdAt: ts,
-              updatedAt: ts,
-            },
-          },
-          order: [id, ...s.order.filter((x) => x !== id)],
-        }));
-        return id;
+      getOrCreate() {
+        const existing = get().chat;
+        if (existing) return existing;
+        const created = emptyChat();
+        set({ chat: created });
+        return created;
       },
 
-      getChat(id) {
-        return get().chats[id];
+      setContext(context) {
+        set((s) => (s.chat ? { chat: { ...s.chat, context, updatedAt: nowIso() } } : s));
       },
 
-      list() {
-        const { chats, order } = get();
-        return order.map((id) => chats[id]).filter(Boolean) as ChatSession[];
-      },
-
-      setMessages(id, messages) {
+      addMessage(message) {
         set((s) => {
-          const chat = s.chats[id];
-          if (!chat) return s;
+          const chat = s.chat ?? emptyChat();
           return {
-            chats: { ...s.chats, [id]: { ...chat, messages, updatedAt: nowIso() } },
-            order: [id, ...s.order.filter((x) => x !== id)],
+            chat: { ...chat, messages: [...chat.messages, message], updatedAt: nowIso() },
           };
         });
       },
 
-      addMessage(id, message) {
+      updateMessage(messageId, patch) {
         set((s) => {
-          const chat = s.chats[id];
-          if (!chat) return s;
+          if (!s.chat) return s;
           return {
-            chats: {
-              ...s.chats,
-              [id]: { ...chat, messages: [...chat.messages, message], updatedAt: nowIso() },
-            },
-            order: [id, ...s.order.filter((x) => x !== id)],
-          };
-        });
-      },
-
-      updateMessage(id, messageId, patch) {
-        set((s) => {
-          const chat = s.chats[id];
-          if (!chat) return s;
-          return {
-            chats: {
-              ...s.chats,
-              [id]: {
-                ...chat,
-                messages: chat.messages.map((m) => (m.id === messageId ? { ...m, ...patch } : m)),
-                updatedAt: nowIso(),
-              },
+            chat: {
+              ...s.chat,
+              messages: s.chat.messages.map((m) => (m.id === messageId ? { ...m, ...patch } : m)),
+              updatedAt: nowIso(),
             },
           };
         });
       },
 
-      setServerSessionId(id, serverSessionId) {
+      setServerSessionId(serverSessionId) {
         set((s) => {
-          const chat = s.chats[id];
-          if (!chat || chat.serverSessionId === serverSessionId) return s;
-          return { chats: { ...s.chats, [id]: { ...chat, serverSessionId } } };
+          if (!s.chat || s.chat.serverSessionId === serverSessionId) return s;
+          return { chat: { ...s.chat, serverSessionId } };
         });
       },
 
-      setContext(id, context) {
-        set((s) => {
-          const chat = s.chats[id];
-          if (!chat) return s;
-          return { chats: { ...s.chats, [id]: { ...chat, context } } };
-        });
-      },
-
-      setTitle(id, title) {
-        set((s) => {
-          const chat = s.chats[id];
-          if (!chat) return s;
-          return { chats: { ...s.chats, [id]: { ...chat, title } } };
-        });
-      },
-
-      deleteChat(id) {
-        set((s) => {
-          const next = { ...s.chats };
-          delete next[id];
-          return { chats: next, order: s.order.filter((x) => x !== id) };
-        });
+      clear() {
+        set({ chat: null });
       },
     }),
     {
       name: "museum-chat-history",
-      version: 1,
+      version: 2,
+      migrate: (persisted, version) => {
+        // v1: { chats: Record<string, ChatSession & {title}>, order: string[] }
+        // v2: { chat: ChatSession | null } — сворачиваем самый свежий тред в единственный.
+        if (version < 2 && persisted && typeof persisted === "object") {
+          const legacy = persisted as {
+            chats?: Record<string, ChatSession & { title?: string }>;
+            order?: string[];
+          };
+          const chats = legacy.chats ?? {};
+          const order = legacy.order ?? Object.keys(chats);
+          const pick = order.map((id) => chats[id]).find((c) => c && c.messages.length > 0);
+          if (pick) {
+            const { title: _title, ...rest } = pick as ChatSession & { title?: string };
+            return { chat: rest };
+          }
+          return { chat: null };
+        }
+        return persisted;
+      },
       // blob:-превью загруженных фото мертвы после перезагрузки — не сохраняем их,
       // оставляем только постоянные URL (CDN-фото распознанного экспоната).
       partialize: (state) => ({
-        order: state.order,
-        chats: Object.fromEntries(
-          Object.entries(state.chats).map(([id, chat]) => [
-            id,
-            {
-              ...chat,
-              messages: chat.messages.map((m) =>
+        chat: state.chat
+          ? {
+              ...state.chat,
+              messages: state.chat.messages.map((m) =>
                 m.imageUrl?.startsWith("blob:") ? { ...m, imageUrl: undefined } : m,
               ),
-            },
-          ]),
-        ),
+            }
+          : null,
       }),
     },
   ),

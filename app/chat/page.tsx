@@ -2,10 +2,9 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { History, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { Screen } from "@/components/ui/screen";
 import { AppBar } from "@/components/ui/app-bar";
-import { IconButton } from "@/components/ui/icon-button";
 import { Spinner } from "@/components/ui/spinner";
 import { ChatThread } from "@/components/chat/chat-thread";
 import { AudioButton } from "@/components/audio/audio-button";
@@ -47,92 +46,70 @@ function ChatContent() {
   const chat = useChatWithGuide();
   const recognize = useRecognizeExhibit();
 
-  const [localId, setLocalId] = useState<string | null>(null);
   const [input, setInput] = useState("");
-  const initRef = useRef(false);
+  // Zustand + persist гидрируется на клиенте — ждём mount, чтобы избежать SSR-рассинхрона.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-  // Активный чат из стора — единый источник правды для сообщений/контекста.
-  const session = useChatStore((s) => (localId ? s.chats[localId] : undefined));
+  // Единственный тред — источник правды для сообщений/контекста.
+  const session = useChatStore((s) => s.chat);
   const messages = session?.messages ?? [];
   const context = session?.context;
 
   const { data: contextExhibit } = useExhibit(context?.exhibitId);
   const { data: contextHall } = useHall(context?.hallId);
 
-  // Инициализация: открыть сохранённый чат (?session=) либо создать новый.
+  // Реакция на URL-контекст (QR-переходы: /chat?exhibit=42, /chat?hall=3, /chat?label=slug).
+  // Обновляем контекст треда и добавляем вступительный рассказ, не стирая историю.
+  const processedContextRef = useRef<string | null>(null);
   useEffect(() => {
-    if (initRef.current) return;
-    initRef.current = true;
-    const store = useChatStore.getState();
-
-    const sessionParam = searchParams.get("session");
-    if (sessionParam && store.getChat(sessionParam)) {
-      setLocalId(sessionParam);
-      return;
-    }
-
-    const exhibitId = searchParams.get("exhibit") ? Number(searchParams.get("exhibit")) : undefined;
-    const hallId = searchParams.get("hall") ? Number(searchParams.get("hall")) : undefined;
+    if (!mounted) return;
+    const exhibitRaw = searchParams.get("exhibit");
+    const hallRaw = searchParams.get("hall");
     const labelSlug = searchParams.get("label") ?? undefined;
-    const ctx: ChatContext = { exhibitId, hallId, labelSlug };
+    const exhibitId = exhibitRaw ? Number(exhibitRaw) : undefined;
+    const hallId = hallRaw ? Number(hallRaw) : undefined;
     const hasCtx = exhibitId !== undefined || hallId !== undefined || !!labelSlug;
-
-    // Без контекста (общий чат с главной) — не создаём пустой чат заранее,
-    // он появится в истории только после первого сообщения (см. ensureChat).
     if (!hasCtx) return;
 
-    const id = store.createChat({ context: ctx });
-    setLocalId(id);
-    // Подменяем URL — reload/назад откроют этот же сохранённый чат.
-    router.replace(`/chat?session=${id}`);
+    const key = `${exhibitId ?? ""}|${hallId ?? ""}|${labelSlug ?? ""}`;
+    if (processedContextRef.current === key) return;
+    processedContextRef.current = key;
 
-    // Для экспоната/label сразу генерируем вступительный рассказ.
+    const store = useChatStore.getState();
+    store.getOrCreate();
+    const ctx: ChatContext = { exhibitId, hallId, labelSlug };
+    store.setContext(ctx);
+
+    // Для экспоната/label — вступительный рассказ добавляем как новое сообщение
+    // (а не заменяем историю), чтобы предыдущий диалог сохранялся.
     if (exhibitId !== undefined || labelSlug) {
       story.mutate(
         { exhibitId, labelSlug, maxQuestions: 4 },
         {
           onSuccess: (s) => {
-            store.setMessages(id, [
-              {
-                id: uid("story"),
-                role: "assistant",
-                content: s.text,
-                createdAt: new Date().toISOString(),
-                suggestions: s.suggestedQuestions,
-                audioUrl: s.audioUrl,
-              },
-            ]);
+            useChatStore.getState().addMessage({
+              id: uid("story"),
+              role: "assistant",
+              content: s.text,
+              createdAt: new Date().toISOString(),
+              suggestions: s.suggestedQuestions,
+              audioUrl: s.audioUrl,
+            });
           },
         },
       );
     }
+
+    // Чистим query — reload не будет плодить повторные story.
+    router.replace("/chat");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Заголовок чата для истории: имя экспоната/зала или первый вопрос пользователя.
-  useEffect(() => {
-    if (!localId || !session || session.title !== "Новый чат") return;
-    const firstUser = session.messages.find((m) => m.role === "user")?.content;
-    const title =
-      contextExhibit?.name ??
-      (contextHall ? (contextHall.name ?? `Зал № ${contextHall.hallNumber}`) : undefined) ??
-      (firstUser ? firstUser.slice(0, 48) : undefined);
-    if (title) useChatStore.getState().setTitle(localId, title);
-  }, [localId, session, contextExhibit, contextHall]);
-
-  // Лениво создаём чат на первом действии (для общего чата без контекста).
-  const ensureChat = (): string => {
-    if (localId) return localId;
-    const id = useChatStore.getState().createChat();
-    setLocalId(id);
-    router.replace(`/chat?session=${id}`);
-    return id;
-  };
+  }, [mounted, searchParams]);
 
   const handleSubmit = (text: string) => {
-    const id = ensureChat();
     const store = useChatStore.getState();
-    store.addMessage(id, {
+    store.getOrCreate();
+    store.addMessage({
       id: uid("local"),
       role: "user",
       content: text,
@@ -143,8 +120,9 @@ function ChatContent() {
       { message: text, sessionId: session?.serverSessionId, context, maxQuestions: 3 },
       {
         onSuccess: (res) => {
-          store.setServerSessionId(id, res.sessionId);
-          store.addMessage(id, {
+          const st = useChatStore.getState();
+          st.setServerSessionId(res.sessionId);
+          st.addMessage({
             id: uid("msg"),
             role: "assistant",
             content: res.answer,
@@ -153,7 +131,7 @@ function ChatContent() {
           });
         },
         onError: () => {
-          store.addMessage(id, {
+          useChatStore.getState().addMessage({
             id: uid("err"),
             role: "assistant",
             content: "Не получилось ответить. Попробуй ещё раз.",
@@ -166,10 +144,10 @@ function ChatContent() {
 
   // Загрузка фото: распознаём экспонат (/recognition) и заземляем на нём диалог.
   const handleAttachPhoto = async (file: File) => {
-    const id = ensureChat();
     const store = useChatStore.getState();
+    store.getOrCreate();
     const previewUrl = URL.createObjectURL(file);
-    store.addMessage(id, {
+    store.addMessage({
       id: uid("photo"),
       role: "user",
       content: "Что это за экспонат?",
@@ -181,10 +159,10 @@ function ChatContent() {
       const res = await recognize.mutateAsync(file);
       if (res.recognized && res.exhibit) {
         const ex = res.exhibit;
-        store.setContext(id, { exhibitId: ex.id, labelSlug: ex.labelSlug });
-        store.setTitle(id, ex.name);
+        const st = useChatStore.getState();
+        st.setContext({ exhibitId: ex.id, labelSlug: ex.labelSlug });
         const s = await story.mutateAsync({ exhibitId: ex.id, maxQuestions: 4 });
-        store.addMessage(id, {
+        st.addMessage({
           id: uid("story"),
           role: "assistant",
           content: `На фото — **${ex.name}**.\n\n${s.text}`,
@@ -194,7 +172,7 @@ function ChatContent() {
         });
       } else {
         const names = (res.candidates ?? []).map((c) => c.name).filter((n): n is string => !!n);
-        store.addMessage(id, {
+        useChatStore.getState().addMessage({
           id: uid("msg"),
           role: "assistant",
           content:
@@ -204,7 +182,7 @@ function ChatContent() {
         });
       }
     } catch {
-      store.addMessage(id, {
+      useChatStore.getState().addMessage({
         id: uid("err"),
         role: "assistant",
         content: "Не получилось обработать фото. Попробуй ещё раз.",
@@ -249,20 +227,12 @@ function ChatContent() {
     </div>
   ) : null;
 
-  // Первоначальная загрузка рассказа — экран ожидания
+  // Первоначальная загрузка рассказа — экран ожидания только для пустого треда.
   const initializing = story.isPending && messages.length === 0;
 
   return (
     <Screen>
-      <AppBar
-        onBack={() => router.back()}
-        title="AI-гид"
-        right={
-          <IconButton aria-label="История чатов" variant="ghost" onClick={() => router.push("/chats")}>
-            <History />
-          </IconButton>
-        }
-      />
+      <AppBar onBack={() => router.back()} title="AI-гид" />
       {initializing ? (
         <main className="flex flex-1 flex-col items-center justify-center gap-3">
           <Spinner size="lg" />
