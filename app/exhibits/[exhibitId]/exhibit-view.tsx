@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Screen } from "@/components/ui/screen";
 import { AppBar } from "@/components/ui/app-bar";
+import { useSafeBack } from "@/lib/hooks/use-safe-back";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,13 +22,13 @@ function stripTrailingEllipsis(text: string): string {
 }
 
 export function ExhibitView({ exhibitId }: { exhibitId: number }) {
-  const router = useRouter();
+  const safeBack = useSafeBack();
   const { data: exhibit, isLoading } = useExhibit(exhibitId);
   const { data: related } = useRelatedExhibits(exhibitId);
 
   return (
     <Screen>
-      <AppBar onBack={() => router.back()} title={exhibit?.name ?? "Экспонат"} />
+      <AppBar onBack={safeBack} title={exhibit?.name ?? "Экспонат"} />
       <main className="flex flex-1 flex-col gap-6">
         {isLoading && (
           <>

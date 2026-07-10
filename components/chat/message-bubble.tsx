@@ -4,6 +4,7 @@ import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/lib/types";
 import { Markdown } from "./markdown";
+import { ExhibitPlaque } from "./exhibit-plaque";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -22,7 +23,8 @@ export function MessageBubble({ message, trailing }: MessageBubbleProps) {
         </div>
         <div className="flex-1">
           <div className="border-border bg-muted/40 inline-block max-w-full border px-3 py-2 text-sm leading-relaxed">
-            {message.imageUrl && (
+            {message.exhibit && <ExhibitPlaque exhibit={message.exhibit} />}
+            {message.imageUrl && !message.exhibit && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={message.imageUrl}
@@ -30,7 +32,7 @@ export function MessageBubble({ message, trailing }: MessageBubbleProps) {
                 className="border-border mb-2 max-h-48 w-auto border object-cover"
               />
             )}
-            <Markdown>{message.content}</Markdown>
+            {message.content && <Markdown>{message.content}</Markdown>}
           </div>
           {trailing && <div className="mt-2">{trailing}</div>}
         </div>

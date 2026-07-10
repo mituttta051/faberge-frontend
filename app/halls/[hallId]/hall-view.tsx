@@ -1,16 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Screen } from "@/components/ui/screen";
 import { AppBar } from "@/components/ui/app-bar";
+import { useSafeBack } from "@/lib/hooks/use-safe-back";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useHall, useHallShowcases, useHallExhibits } from "@/lib/api/hooks";
 
 export function HallView({ hallId }: { hallId: number }) {
-  const router = useRouter();
+  const safeBack = useSafeBack();
   const { data: hall, isLoading: hallLoading } = useHall(hallId);
   const { data: showcases } = useHallShowcases(hallId);
   const { data: exhibits } = useHallExhibits(hallId);
@@ -18,7 +18,7 @@ export function HallView({ hallId }: { hallId: number }) {
   return (
     <Screen>
       <AppBar
-        onBack={() => router.back()}
+        onBack={safeBack}
         title={hall?.name ?? (hall ? `Зал № ${hall.hallNumber}` : "Зал")}
       />
       <main className="flex flex-1 flex-col gap-6 px-6 py-6">

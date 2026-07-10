@@ -1,21 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Screen } from "@/components/ui/screen";
 import { AppBar } from "@/components/ui/app-bar";
+import { useSafeBack } from "@/lib/hooks/use-safe-back";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useShowcase, useShowcaseExhibits } from "@/lib/api/hooks";
 
 export function ShowcaseView({ showcaseId }: { showcaseId: number }) {
-  const router = useRouter();
+  const safeBack = useSafeBack();
   const { data: showcase, isLoading } = useShowcase(showcaseId);
   const { data: exhibits } = useShowcaseExhibits(showcaseId);
 
   return (
     <Screen>
       <AppBar
-        onBack={() => router.back()}
+        onBack={safeBack}
         title={showcase ? `Витрина № ${showcase.showcaseNumber}` : "Витрина"}
       />
       <main className="flex flex-1 flex-col gap-6 px-6 py-6">

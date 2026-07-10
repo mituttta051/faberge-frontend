@@ -3,10 +3,10 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { AlertCircle, Sparkles } from "lucide-react";
 import { Screen } from "@/components/ui/screen";
 import { AppBar } from "@/components/ui/app-bar";
+import { useSafeBack } from "@/lib/hooks/use-safe-back";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { CameraCapture } from "@/components/camera/camera-capture";
@@ -15,7 +15,7 @@ import { useRecognizeExhibit } from "@/lib/api/hooks";
 type RecognizeStep = "camera" | "recognizing" | "result" | "not_recognized" | "error";
 
 export default function RecognizePage() {
-  const router = useRouter();
+  const safeBack = useSafeBack();
   const [step, setStep] = useState<RecognizeStep>("camera");
   const recognize = useRecognizeExhibit();
 
@@ -45,7 +45,7 @@ export default function RecognizePage() {
     <Screen>
       {step === "camera" && (
         <>
-          <AppBar onBack={() => router.back()} title="Распознавание" />
+          <AppBar onBack={safeBack} title="Распознавание" />
           <CameraCapture onCapture={handleCapture} className="flex-1" />
         </>
       )}

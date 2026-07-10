@@ -13,6 +13,17 @@ export interface ChatMessage {
   suggestions?: string[];
   /** Прикреплённое фото: blob:-превью загрузки или CDN-фото распознанного экспоната. */
   imageUrl?: string;
+  /** Плашка распознанного/упомянутого экспоната внутри сообщения (ссылка на карточку). */
+  exhibit?: ChatExhibitCard;
+}
+
+/** Мини-карточка экспоната, встраиваемая в assistant-сообщение. Кликабельна → /exhibits/[id]. */
+export interface ChatExhibitCard {
+  id: number;
+  name: string;
+  photoUrl?: string;
+  yearCreated?: number;
+  masterName?: string;
 }
 
 /** Контекст разговора — что обсуждаем (экспонат, зал или распознанный label). */
