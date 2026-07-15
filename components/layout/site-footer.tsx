@@ -1,4 +1,4 @@
-import { ExternalLink, Mail, MapPin, MessageCircle, Music, Send } from "lucide-react";
+import { ExternalLink, FileText, Mail, MessageCircle, Music, Phone, Send } from "lucide-react";
 
 interface FooterLink {
   label: string;
@@ -7,7 +7,6 @@ interface FooterLink {
   external?: boolean;
 }
 
-// TODO: подтвердить реальные URL с заказчиком; текущие — best-guess по официальному сайту музея.
 const LINKS: FooterLink[] = [
   {
     label: "Сайт музея",
@@ -16,20 +15,24 @@ const LINKS: FooterLink[] = [
     external: true,
   },
   {
-    label: "Указатель экспозиции",
-    href: "https://fabergemuseum.ru/plan",
-    icon: MapPin,
+    label: "Путеводитель",
+    href: "https://fabergemuseum.ru/image/pdf/faberge_expo.pdf",
+    icon: FileText,
     external: true,
   },
-  { label: "Аудиогид", href: "https://fabergemuseum.ru/audio", icon: Music, external: true },
+  {
+    label: "Онлайн-аудиогид",
+    href: "https://audioguide.fabergemuseum.ru/",
+    icon: Music,
+    external: true,
+  },
   {
     label: "ВКонтакте",
-    href: "https://vk.com/fabergemuseumspb",
+    href: "https://vk.com/fabergemuseum",
     icon: MessageCircle,
     external: true,
   },
   { label: "Telegram", href: "https://t.me/fabergemuseum", icon: Send, external: true },
-  { label: "Написать нам", href: "mailto:info@fabergemuseum.ru", icon: Mail },
 ];
 
 export function SiteFooter() {
@@ -57,9 +60,31 @@ export function SiteFooter() {
             );
           })}
         </ul>
-        <p className="text-muted-foreground mt-6 text-center text-xs">
-          Санкт-Петербург, наб. реки Фонтанки, 21
+
+        <p className="text-muted-foreground mt-6 text-[10px] tracking-widest uppercase">
+          Контакты
         </p>
+        <div className="mt-3 flex flex-col gap-3 text-sm">
+          <a
+            href="tel:+78123332655"
+            className="border-border hover:bg-background flex items-center gap-2 border p-3 transition-colors"
+          >
+            <Phone className="text-accent h-4 w-4 shrink-0" />
+            +7 (812) 333-26-55
+          </a>
+          <a
+            href="mailto:3332655@fsv.ru"
+            className="border-border hover:bg-background flex items-center gap-2 border p-3 transition-colors"
+          >
+            <Mail className="text-accent h-4 w-4 shrink-0" />
+            3332655@fsv.ru
+          </a>
+        </div>
+
+        <div className="text-muted-foreground mt-6 space-y-1 text-xs leading-relaxed">
+          <p>Шуваловский дворец, наб. реки Фонтанки, 21</p>
+          <p>Ежедневно с 10:00 до 20:45. Кассы — с 9:30 до 20:15.</p>
+        </div>
       </div>
     </footer>
   );
