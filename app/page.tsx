@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Camera, ChevronDown, List, Map as MapIcon, MessageCircle, Search } from "lucide-react";
+import { Building2, Camera, ChevronDown, List, Map as MapIcon, MessageCircle, Search, Sparkles } from "lucide-react";
 import { Screen } from "@/components/ui/screen";
 import { AppBar } from "@/components/ui/app-bar";
 import { Button } from "@/components/ui/button";
@@ -32,9 +32,9 @@ const TOUR_STEPS: TourStep[] = [
     text: "Спроси о любой вещи в коллекции — от истории мастера до символики орнамента.",
   },
   {
-    selector: '[data-tour="map"]',
-    title: "Карта залов",
-    text: "Тапни на номер зала, чтобы открыть его. Жесты — зум и перемещение.",
+    selector: '[data-tour="expositions"]',
+    title: "Экспозиции музея",
+    text: "Выбирай, что посмотреть: постоянную коллекцию или временные выставки.",
   },
   {
     selector: '[data-tour="search"]',
@@ -69,6 +69,9 @@ function HomeContent() {
   const [hallsSheetOpen, setHallsSheetOpen] = useState(false);
   const [showTour, setShowTour] = useState(false);
 
+  const typeParam = searchParams.get("type");
+  const expositionChosen = typeParam === "permanent" || typeParam === "temporary";
+
   // QR deep-link: /?hall=4 → /halls/4, /?exhibit=1001 → /exhibits/1001
   useEffect(() => {
     const hall = searchParams.get("hall");
@@ -81,8 +84,12 @@ function HomeContent() {
       router.replace(`/exhibits/${exhibit}`);
       return;
     }
-    // Первое посещение без QR-контекста → показать тур по кнопкам.
-    if (typeof window !== "undefined" && !localStorage.getItem(TOUR_SEEN_KEY)) {
+    // Первое посещение без QR-контекста и без выбранной экспозиции → тур по кнопкам.
+    if (
+      typeof window !== "undefined" &&
+      !localStorage.getItem(TOUR_SEEN_KEY) &&
+      !searchParams.get("type")
+    ) {
       setShowTour(true);
     }
   }, [searchParams, router]);
@@ -92,7 +99,15 @@ function HomeContent() {
     setShowTour(false);
   };
 
-  const { data: halls, isLoading, error } = useHalls();
+  const { data: allHalls, isLoading, error } = useHalls();
+  const permanentHalls = (allHalls ?? []).filter((h) => !h.isTemporary);
+  const temporaryHalls = (allHalls ?? []).filter((h) => !!h.isTemporary);
+  const halls =
+    typeParam === "temporary"
+      ? temporaryHalls
+      : typeParam === "permanent"
+        ? permanentHalls
+        : allHalls;
   // Отложенный запрос сглаживает набор — React не бьёт по сети на каждую букву,
   // а результаты не пропадают между кадрами (см. `placeholderData` в хуке).
   const deferredQuery = useDeferredValue(searchQuery);
@@ -143,11 +158,59 @@ function HomeContent() {
           </Link>
         </div>
 
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
+        {!expositionChosen && (
+          <section data-tour="expositions" className="flex flex-col gap-3">
             <h2 className="text-muted-foreground text-xs tracking-widest uppercase">
-              Залы экспозиции
+              Экспозиции
             </h2>
+            <Link
+              href="/?type=permanent"
+              className="border-border hover:bg-muted group/exp flex items-center gap-3 border p-4 transition-colors"
+            >
+              <Building2 className="text-accent h-6 w-6 shrink-0" />
+              <span className="min-w-0 flex-1">
+                <span className="font-display block text-base tracking-tight">
+                  Основная экспозиция
+                </span>
+                <span className="text-muted-foreground mt-0.5 block text-xs">
+                  {permanentHalls.length} залов постоянной коллекции
+                </span>
+              </span>
+              <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0 -rotate-90" />
+            </Link>
+            <Link
+              href="/?type=temporary"
+              className="border-border hover:bg-muted group/exp flex items-center gap-3 border p-4 transition-colors"
+            >
+              <Sparkles className="text-accent h-6 w-6 shrink-0" />
+              <span className="min-w-0 flex-1">
+                <span className="font-display block text-base tracking-tight">
+                  Временная выставка
+                </span>
+                <span className="text-muted-foreground mt-0.5 block text-xs">
+                  {temporaryHalls.length}{" "}
+                  {temporaryHalls.length === 1 ? "зал" : "залов"} временных выставок
+                </span>
+              </span>
+              <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0 -rotate-90" />
+            </Link>
+            {error && (
+              <p className="text-destructive text-sm">Не удалось загрузить залы: {String(error)}</p>
+            )}
+          </section>
+        )}
+
+        {expositionChosen && (
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <h2 className="text-muted-foreground text-[10px] tracking-widest uppercase">
+                {typeParam === "temporary" ? "Временная выставка" : "Основная экспозиция"}
+              </h2>
+              <Link href="/" className="text-muted-foreground hover:text-foreground text-xs">
+                ← сменить экспозицию
+              </Link>
+            </div>
 
             <div className="border-border flex border" role="group" aria-label="Вид залов">
               <button
@@ -218,6 +281,7 @@ function HomeContent() {
             </button>
           )}
         </section>
+        )}
       </main>
 
       <SiteFooter />
@@ -254,12 +318,19 @@ function HomeContent() {
                   key={`hall-${h.id}`}
                   href={`/halls/${h.id}`}
                   onClick={() => setSearchOpen(false)}
-                  className="hover:bg-muted -mx-2 px-2 py-3 text-left text-sm transition-colors"
+                  className="hover:bg-muted -mx-2 flex items-baseline gap-2 px-2 py-3 text-left text-sm transition-colors"
                 >
-                  <span className="text-muted-foreground mr-2 text-xs tracking-widest uppercase">
+                  <span className="text-muted-foreground text-xs tracking-widest uppercase">
                     Зал
                   </span>
-                  {h.name ?? `Зал № ${h.hallNumber}`}
+                  <span className="min-w-0 flex-1 truncate">
+                    {h.name ?? `Зал № ${h.hallNumber}`}
+                  </span>
+                  {h.isTemporary && (
+                    <span className="border-border text-muted-foreground shrink-0 border px-1.5 py-px text-[10px] tracking-widest uppercase">
+                      временная
+                    </span>
+                  )}
                 </Link>
               ))}
             {searchQuery &&
@@ -306,8 +377,13 @@ function HomeContent() {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-muted-foreground text-[10px] tracking-widest uppercase">
+                  <p className="text-muted-foreground flex items-center gap-2 text-[10px] tracking-widest uppercase">
                     Зал № {hall.hallNumber}
+                    {hall.isTemporary && (
+                      <span className="border-border border px-1.5 py-px normal-case tracking-normal">
+                        временная
+                      </span>
+                    )}
                   </p>
                   <p className="mt-0.5 truncate text-sm font-medium">
                     {hall.name ?? `Зал № ${hall.hallNumber}`}

@@ -37,7 +37,10 @@ export function HallView({ hallId }: { hallId: number }) {
         {hall && (
           <>
             <div>
-              <Badge>Зал № {hall.hallNumber}</Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge>Зал № {hall.hallNumber}</Badge>
+                {hall.isTemporary && <Badge variant="outline">Временная выставка</Badge>}
+              </div>
               <h1 className="font-display mt-3 text-2xl tracking-tight">
                 {hall.name ?? `Зал № ${hall.hallNumber}`}
               </h1>

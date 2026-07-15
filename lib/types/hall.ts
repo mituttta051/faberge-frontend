@@ -13,4 +13,6 @@ export interface Hall {
   coverImageUrl?: string;
   showcaseCount?: number;
   exhibitCount?: number;
+  /** Помечен ли зал как временная выставка (отдельный каталог + бейдж). */
+  isTemporary?: boolean;
 }

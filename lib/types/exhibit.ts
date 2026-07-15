@@ -26,4 +26,6 @@ export interface Exhibit {
   audioUrl?: string;
   /** Первоисточник описания на сайте музея */
   sourceUrl?: string;
+  /** Находится ли экспонат во временной выставке (наследуется от зала). */
+  isTemporary?: boolean;
 }

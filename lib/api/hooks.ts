@@ -26,8 +26,11 @@ import {
 // Каталог
 // ============================
 
-export function useHalls() {
-  return useQuery({ queryKey: ["halls"], queryFn: getHalls });
+export function useHalls(opts: { isTemporary?: boolean } = {}) {
+  return useQuery({
+    queryKey: ["halls", opts.isTemporary ?? null],
+    queryFn: () => getHalls(opts),
+  });
 }
 
 export function useHall(id: number | undefined) {

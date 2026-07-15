@@ -23,6 +23,7 @@ interface WireHall {
   description?: string | null;
   level?: number | null;
   cover_image_url?: string | null;
+  is_temporary?: boolean | null;
   showcase_count?: number | null;
   exhibit_count?: number | null;
 }
@@ -55,6 +56,7 @@ interface WireExhibitSummary {
   thumbnail_url?: string | null;
   hall_id?: number | null;
   showcase_id?: number | null;
+  is_temporary?: boolean | null;
 }
 
 interface WireExhibit {
@@ -149,6 +151,7 @@ function mapHall(h: WireHall): Hall {
     coverImageUrl: h.cover_image_url ?? undefined,
     showcaseCount: h.showcase_count ?? undefined,
     exhibitCount: h.exhibit_count ?? undefined,
+    isTemporary: h.is_temporary ?? undefined,
   };
 }
 
@@ -172,6 +175,7 @@ function mapExhibitSummary(e: WireExhibitSummary): Exhibit {
     photoUrl: e.thumbnail_url ?? undefined,
     hallId: e.hall_id ?? undefined,
     showcaseId: e.showcase_id ?? undefined,
+    isTemporary: e.is_temporary ?? undefined,
   };
 }
 
@@ -207,8 +211,10 @@ function mapCandidate(c: WireRecognitionCandidate): RecognitionCandidate {
 // Каталог
 // ============================
 
-export async function getHalls(): Promise<Hall[]> {
-  return (await fetchAllPaged<WireHall>("/halls")).map(mapHall);
+export async function getHalls(opts: { isTemporary?: boolean } = {}): Promise<Hall[]> {
+  const query =
+    opts.isTemporary !== undefined ? { is_temporary: String(opts.isTemporary) } : undefined;
+  return (await fetchAllPaged<WireHall>("/halls", { query })).map(mapHall);
 }
 
 export async function getHall(id: number): Promise<Hall> {

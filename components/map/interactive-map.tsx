@@ -54,8 +54,11 @@ export function InteractiveMap({ halls, className }: InteractiveMapProps) {
 
                 {MAP_HOTSPOTS.map((spot) => {
                   const hall = byNumber.get(spot.hallNumber);
-                  const id = hall?.id ?? spot.hallNumber;
-                  const label = hall?.name
+                  // Показываем только те хотспоты, чей зал есть в переданной выборке
+                  // (для фильтра «Временная выставка» отфильтровываем постоянные).
+                  if (!hall) return null;
+                  const id = hall.id;
+                  const label = hall.name
                     ? `Зал № ${spot.hallNumber} — ${hall.name}`
                     : `Зал № ${spot.hallNumber}`;
 
