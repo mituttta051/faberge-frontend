@@ -71,6 +71,8 @@ function HomeContent() {
 
   const typeParam = searchParams.get("type");
   const expositionChosen = typeParam === "permanent" || typeParam === "temporary";
+  // Для временной экспозиции карта неинформативна (обычно 1 зал), сразу показываем список.
+  const mapAvailable = typeParam !== "temporary";
 
   // QR deep-link: /?hall=4 → /halls/4, /?exhibit=1001 → /exhibits/1001
   useEffect(() => {
@@ -212,43 +214,45 @@ function HomeContent() {
               </Link>
             </div>
 
-            <div className="border-border flex border" role="group" aria-label="Вид залов">
-              <button
-                type="button"
-                aria-pressed={hallsView === "map"}
-                onClick={() => setHallsView("map")}
-                className={cn(
-                  "flex h-8 items-center gap-1.5 px-3 text-xs font-medium transition-colors",
-                  hallsView === "map"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted",
-                )}
-              >
-                <MapIcon className="h-3.5 w-3.5" />
-                Карта
-              </button>
-              <button
-                type="button"
-                aria-pressed={hallsView === "list"}
-                onClick={() => setHallsView("list")}
-                className={cn(
-                  "border-border flex h-8 items-center gap-1.5 border-l px-3 text-xs font-medium transition-colors",
-                  hallsView === "list"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted",
-                )}
-              >
-                <List className="h-3.5 w-3.5" />
-                Список
-              </button>
-            </div>
+            {mapAvailable && (
+              <div className="border-border flex border" role="group" aria-label="Вид залов">
+                <button
+                  type="button"
+                  aria-pressed={hallsView === "map"}
+                  onClick={() => setHallsView("map")}
+                  className={cn(
+                    "flex h-8 items-center gap-1.5 px-3 text-xs font-medium transition-colors",
+                    hallsView === "map"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted",
+                  )}
+                >
+                  <MapIcon className="h-3.5 w-3.5" />
+                  Карта
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={hallsView === "list"}
+                  onClick={() => setHallsView("list")}
+                  className={cn(
+                    "border-border flex h-8 items-center gap-1.5 border-l px-3 text-xs font-medium transition-colors",
+                    hallsView === "list"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted",
+                  )}
+                >
+                  <List className="h-3.5 w-3.5" />
+                  Список
+                </button>
+              </div>
+            )}
           </div>
 
           {error && (
             <p className="text-destructive text-sm">Не удалось загрузить залы: {String(error)}</p>
           )}
 
-          {hallsView === "map" && (
+          {mapAvailable && hallsView === "map" && (
             <>
               <div data-tour="map">
                 <InteractiveMap halls={halls ?? []} />
@@ -259,7 +263,7 @@ function HomeContent() {
             </>
           )}
 
-          {hallsView === "list" && (
+          {(!mapAvailable || hallsView === "list") && (
             <button
               type="button"
               onClick={() => setHallsSheetOpen(true)}
