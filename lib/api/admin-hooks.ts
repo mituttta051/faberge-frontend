@@ -13,6 +13,7 @@ import {
   getAllExhibits,
   getAllShowcases,
   listExhibitMedia,
+  reorderHalls,
   updateExhibit,
   updateHall,
   updateShowcase,
@@ -71,6 +72,15 @@ export function useDeleteHall() {
   const invalidate = useInvalidateCatalog();
   return useMutation({
     mutationFn: (id: number) => deleteHall(id),
+    onSuccess: invalidate,
+  });
+}
+
+/** Новый порядок залов (C11). Список id — в желаемом порядке. */
+export function useReorderHalls() {
+  const invalidate = useInvalidateCatalog();
+  return useMutation({
+    mutationFn: (hallIds: number[]) => reorderHalls(hallIds),
     onSuccess: invalidate,
   });
 }

@@ -21,6 +21,8 @@ interface WireHall {
   name?: string | null;
   description?: string | null;
   cover_image_url?: string | null;
+  is_temporary?: boolean | null;
+  sort_order?: number | null;
   showcase_count?: number | null;
   exhibit_count?: number | null;
 }
@@ -81,6 +83,8 @@ function mapHall(h: WireHall): Hall {
     name: h.name ?? undefined,
     description: h.description ?? undefined,
     coverImageUrl: h.cover_image_url ?? undefined,
+    isTemporary: h.is_temporary ?? undefined,
+    sortOrder: h.sort_order ?? undefined,
     showcaseCount: h.showcase_count ?? undefined,
     exhibitCount: h.exhibit_count ?? undefined,
   };
@@ -174,6 +178,22 @@ export async function updateHall(id: number, input: HallInput): Promise<Hall> {
 // NB: на бэке DELETE /admin/halls/{id} пока нет — вернётся 404/405 (см. контракт).
 export async function deleteHall(id: number): Promise<void> {
   await request<void>(`/admin/halls/${id}`, { method: "DELETE" });
+}
+
+/**
+ * Новый порядок залов (drag-n-drop, C11).
+ *
+ * Бэк переставляет залы «по слотам»: берёт их текущие sort_order, сортирует и
+ * раздаёт в присланном порядке. Поэтому допустимо слать подсписок — например,
+ * только основную экспозицию, — залы вне запроса не сдвинутся.
+ * Возвращает залы уже в новом порядке.
+ */
+export async function reorderHalls(hallIds: number[]): Promise<Hall[]> {
+  const res = await request<{ items: WireHall[] }>("/admin/halls/reorder", {
+    method: "PUT",
+    json: { hall_ids: hallIds },
+  });
+  return res.items.map(mapHall);
 }
 
 /** Загрузка обложки зала (multipart). Бэк пишет URL в cover_image_url. */

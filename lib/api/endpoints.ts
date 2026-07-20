@@ -24,6 +24,7 @@ interface WireHall {
   level?: number | null;
   cover_image_url?: string | null;
   is_temporary?: boolean | null;
+  sort_order?: number | null;
   showcase_count?: number | null;
   exhibit_count?: number | null;
 }
@@ -152,6 +153,7 @@ function mapHall(h: WireHall): Hall {
     showcaseCount: h.showcase_count ?? undefined,
     exhibitCount: h.exhibit_count ?? undefined,
     isTemporary: h.is_temporary ?? undefined,
+    sortOrder: h.sort_order ?? undefined,
   };
 }
 

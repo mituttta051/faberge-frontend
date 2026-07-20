@@ -10,9 +10,12 @@ export interface HallGroup<T> {
 /**
  * Разложить плоский список по залам для сворачиваемых групп.
  *
- * Залы идут по номеру, строки внутри группы — в порядке `compareRows`.
- * Пустые залы попадают в результат: администратору нужно видеть, что зал есть,
- * но пуст. Строки без зала уезжают в последнюю группу с `hall: null`.
+ * Порядок групп = порядок массива `halls`: сервер уже отдаёт залы по
+ * `sort_order` (drag-n-drop в админке, C11), и пересортировывать их по номеру
+ * здесь нельзя — это перебило бы заданный администратором порядок.
+ * Строки внутри группы идут по `compareRows`. Пустые залы остаются в
+ * результате: администратору нужно видеть, что зал есть, но пуст. Строки без
+ * зала уезжают в последнюю группу с `hall: null`.
  */
 export function groupByHall<T>(
   rows: T[],
@@ -30,9 +33,10 @@ export function groupByHall<T>(
     else orphans.push(row);
   }
 
-  const groups: HallGroup<T>[] = [...halls]
-    .sort((a, b) => a.hallNumber - b.hallNumber)
-    .map((hall) => ({ hall, rows: buckets.get(hall.id) ?? [] }));
+  const groups: HallGroup<T>[] = halls.map((hall) => ({
+    hall,
+    rows: buckets.get(hall.id) ?? [],
+  }));
 
   if (orphans.length > 0) groups.push({ hall: null, rows: orphans });
   if (compareRows) groups.forEach((g) => g.rows.sort(compareRows));
