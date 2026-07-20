@@ -11,6 +11,7 @@ import {
   useUploadHallCover,
 } from "@/lib/api/admin-hooks";
 import { errorMessage } from "@/lib/utils";
+import { hallLabel } from "@/lib/admin/labels";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { DataTable, type Column } from "@/components/admin/data-table";
@@ -18,8 +19,20 @@ import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { HallForm } from "@/components/admin/hall-form";
 
 const columns: Column<Hall>[] = [
-  { header: "№", cell: (h) => <span className="tabular-nums">{h.hallNumber}</span> },
-  { header: "Название", cell: (h) => h.name ?? "—" },
+  // nowrap: иначе «Описание» съедает ширину и название зала ломается на 3 строки.
+  { header: "Зал", className: "whitespace-nowrap", cell: (h) => hallLabel(h) },
+  {
+    header: "Витрин",
+    hideOnMobile: true,
+    className: "w-20 text-right",
+    cell: (h) => <span className="tabular-nums">{h.showcaseCount ?? 0}</span>,
+  },
+  {
+    header: "Экспонатов",
+    hideOnMobile: true,
+    className: "w-28 text-right",
+    cell: (h) => <span className="tabular-nums">{h.exhibitCount ?? 0}</span>,
+  },
   {
     header: "Описание",
     hideOnMobile: true,
@@ -105,6 +118,7 @@ export default function HallsAdminPage() {
         rows={halls}
         rowKey={(h) => h.id}
         loading={isLoading}
+        onRowClick={openEdit}
         onEdit={openEdit}
         onDelete={setDeleting}
       />
@@ -126,8 +140,7 @@ export default function HallsAdminPage() {
         title="Удалить зал?"
         description={
           <>
-            Зал «{deleting?.name ?? deleting?.hallNumber}» и все его витрины и экспонаты будут
-            удалены безвозвратно.
+            {hallLabel(deleting)} и все его витрины и экспонаты будут удалены безвозвратно.
           </>
         }
         loading={deleteMut.isPending}

@@ -5,6 +5,7 @@ import type { AdminExhibit, ExhibitInput, Hall, Showcase } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
+import { hallLabel, showcaseLabel } from "@/lib/admin/labels";
 import { Field, FormActions } from "./field";
 import { ExhibitGallery } from "./exhibit-gallery";
 
@@ -82,7 +83,7 @@ export function ExhibitForm({
             <option value="">—</option>
             {halls.map((h) => (
               <option key={h.id} value={h.id}>
-                {h.hallNumber}. {h.name ?? "Без названия"}
+                {hallLabel(h)}
               </option>
             ))}
           </Select>
@@ -96,7 +97,7 @@ export function ExhibitForm({
             <option value="">—</option>
             {hallShowcases.map((s) => (
               <option key={s.id} value={s.id}>
-                №{s.showcaseNumber} {s.name ?? ""}
+                {showcaseLabel(s)}
               </option>
             ))}
           </Select>
