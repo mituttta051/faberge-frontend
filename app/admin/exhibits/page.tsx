@@ -12,9 +12,13 @@ import {
   useUpdateExhibit,
 } from "@/lib/api/admin-hooks";
 import { errorMessage } from "@/lib/utils";
+import { hallLabel, placementLabel, showcaseLabel } from "@/lib/admin/labels";
+import { groupByHall } from "@/lib/admin/grouping";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { Spinner } from "@/components/ui/spinner";
 import { DataTable, type Column } from "@/components/admin/data-table";
+import { AccordionSection } from "@/components/admin/accordion-section";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { ExhibitForm } from "@/components/admin/exhibit-form";
 
@@ -30,23 +34,60 @@ export default function ExhibitsAdminPage() {
   const [editing, setEditing] = React.useState<AdminExhibit | null>(null);
   const [deleting, setDeleting] = React.useState<AdminExhibit | null>(null);
 
-  const hallLabel = React.useCallback(
-    (hallId?: number) => {
-      const hall = halls.find((h) => h.id === hallId);
-      return hall ? `${hall.hallNumber}. ${hall.name ?? ""}`.trim() : "—";
-    },
-    [halls],
+  const showcaseById = React.useMemo(() => new Map(showcases.map((s) => [s.id, s])), [showcases]);
+
+  // Экспонатов сотни — плоским списком в них не сориентироваться, поэтому
+  // раскладываем по залам и держим группы свёрнутыми.
+  const groups = React.useMemo(
+    () =>
+      groupByHall(
+        exhibits,
+        halls,
+        (e) => e.hallId,
+        (a, b) => {
+          const sa = a.showcaseId
+            ? (showcaseById.get(a.showcaseId)?.showcaseNumber ?? Infinity)
+            : Infinity;
+          const sb = b.showcaseId
+            ? (showcaseById.get(b.showcaseId)?.showcaseNumber ?? Infinity)
+            : Infinity;
+          return sa - sb || a.name.localeCompare(b.name, "ru");
+        },
+      ),
+    [exhibits, halls, showcaseById],
   );
 
+  const showcaseOf = React.useCallback(
+    (e: AdminExhibit) => (e.showcaseId ? showcaseById.get(e.showcaseId) : undefined),
+    [showcaseById],
+  );
+
+  // Зал вынесен в заголовок группы, поэтому в строке остаётся витрина.
   const columns: Column<AdminExhibit>[] = [
-    { header: "Название", cell: (e) => e.name },
+    {
+      header: "Витрина",
+      hideOnMobile: true,
+      className: "text-muted-foreground whitespace-nowrap",
+      cell: (e) => showcaseLabel(showcaseOf(e)),
+    },
+    {
+      header: "Название",
+      cell: (e) => (
+        <>
+          {e.name}
+          {/* На узком экране колонка «Витрина» скрыта — не теряем её из наименования. */}
+          <span className="text-muted-foreground block text-xs md:hidden">
+            {showcaseLabel(showcaseOf(e))}
+          </span>
+        </>
+      ),
+    },
     {
       header: "Год",
       hideOnMobile: true,
       cell: (e) => <span className="tabular-nums">{e.yearCreated ?? "—"}</span>,
     },
     { header: "Мастер", hideOnMobile: true, cell: (e) => e.masterName ?? "—" },
-    { header: "Зал", hideOnMobile: true, cell: (e) => hallLabel(e.hallId) },
   ];
 
   function openCreate() {
@@ -93,14 +134,32 @@ export default function ExhibitsAdminPage() {
         </Button>
       </header>
 
-      <DataTable
-        columns={columns}
-        rows={exhibits}
-        rowKey={(e) => e.id}
-        loading={isLoading}
-        onEdit={openEdit}
-        onDelete={setDeleting}
-      />
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Spinner size="lg" />
+        </div>
+      ) : (
+        <div className="border-border border">
+          {groups.map((group) => (
+            <AccordionSection
+              key={group.hall?.id ?? "no-hall"}
+              title={hallLabel(group.hall)}
+              meta={group.rows.length}
+            >
+              <DataTable
+                embedded
+                columns={columns}
+                rows={group.rows}
+                rowKey={(e) => e.id}
+                emptyLabel="В этом зале пока нет экспонатов."
+                onRowClick={openEdit}
+                onEdit={openEdit}
+                onDelete={setDeleting}
+              />
+            </AccordionSection>
+          ))}
+        </div>
+      )}
 
       <Modal
         open={formOpen}
@@ -124,7 +183,16 @@ export default function ExhibitsAdminPage() {
         open={!!deleting}
         onOpenChange={(open) => !open && setDeleting(null)}
         title="Удалить экспонат?"
-        description={<>Экспонат «{deleting?.name}» будет удалён безвозвратно.</>}
+        description={
+          <>
+            Экспонат «{deleting?.name}» (
+            {placementLabel(
+              halls.find((h) => h.id === deleting?.hallId),
+              deleting ? showcaseOf(deleting) : undefined,
+            )}
+            ) будет удалён безвозвратно.
+          </>
+        }
         loading={deleteMut.isPending}
         error={deleteMut.error ? errorMessage(deleteMut.error) : null}
         onConfirm={handleDelete}

@@ -21,9 +21,20 @@ interface DataTableProps<T> {
   emptyLabel?: string;
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
+  /** Клик в любом месте строки. Кнопки действий продолжают работать как раньше. */
+  onRowClick?: (row: T) => void;
+  /** Таблица вложена в аккордеон — рамку и фон шапки рисует родитель. */
+  embedded?: boolean;
 }
 
-/** Простая адаптивная таблица для админ-разделов с действиями строки. */
+/**
+ * Простая адаптивная таблица для админ-разделов с действиями строки.
+ *
+ * `onRowClick` — увеличенная зона попадания для мыши и тача. Роль кнопки на
+ * <tr> намеренно не вешаем: внутри строки уже лежат кнопки действий, и вложенные
+ * интерактивные элементы ломают навигацию с клавиатуры. Клавиатурный путь
+ * остаётся прежним — через кнопку «Редактировать».
+ */
 export function DataTable<T>({
   columns,
   rows,
@@ -32,6 +43,8 @@ export function DataTable<T>({
   emptyLabel = "Пока пусто.",
   onEdit,
   onDelete,
+  onRowClick,
+  embedded,
 }: DataTableProps<T>) {
   if (loading) {
     return (
@@ -43,7 +56,12 @@ export function DataTable<T>({
 
   if (rows.length === 0) {
     return (
-      <div className="border-border text-muted-foreground border border-dashed py-16 text-center text-sm">
+      <div
+        className={cn(
+          "text-muted-foreground py-16 text-center text-sm",
+          !embedded && "border-border border border-dashed",
+        )}
+      >
         {emptyLabel}
       </div>
     );
@@ -52,7 +70,7 @@ export function DataTable<T>({
   const hasActions = !!onEdit || !!onDelete;
 
   return (
-    <div className="border-border overflow-x-auto border">
+    <div className={cn("overflow-x-auto", !embedded && "border-border border")}>
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-border bg-muted border-b text-left">
@@ -73,7 +91,14 @@ export function DataTable<T>({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={rowKey(row)} className="border-border hover:bg-muted/50 border-b last:border-0">
+            <tr
+              key={rowKey(row)}
+              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              className={cn(
+                "border-border hover:bg-muted/50 border-b last:border-0",
+                onRowClick && "cursor-pointer",
+              )}
+            >
               {columns.map((col, i) => (
                 <td
                   key={i}
@@ -87,7 +112,12 @@ export function DataTable<T>({
                 </td>
               ))}
               {hasActions && (
-                <td className="px-3 py-2 text-right whitespace-nowrap">
+                // Клик по действиям не должен всплывать в onRowClick: «Удалить»
+                // иначе открыло бы ещё и форму редактирования под диалогом.
+                <td
+                  className="px-3 py-2 text-right whitespace-nowrap"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <div className="inline-flex gap-1">
                     {onEdit && (
                       <button

@@ -4,6 +4,7 @@ import * as React from "react";
 import type { Hall, Showcase, ShowcaseInput } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { hallLabel } from "@/lib/admin/labels";
 import { Field, FormActions } from "./field";
 
 interface ShowcaseFormProps {
@@ -44,7 +45,7 @@ export function ShowcaseForm({
         <Select value={hallId} onChange={(e) => setHallId(e.target.value)} required>
           {halls.map((h) => (
             <option key={h.id} value={h.id}>
-              {h.hallNumber}. {h.name ?? "Без названия"}
+              {hallLabel(h)}
             </option>
           ))}
         </Select>
