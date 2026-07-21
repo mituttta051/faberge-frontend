@@ -2,6 +2,13 @@
 
 import { create } from "zustand";
 import { synthesizeSpeech } from "@/lib/api";
+import { track } from "@/lib/telemetry";
+
+/** Ключи вида `exhibit_42` приходят с карточки; в чате это id сообщения. */
+function exhibitIdFromKey(key: string): number | undefined {
+  const m = /^exhibit_(\d+)$/.exec(key);
+  return m ? Number(m[1]) : undefined;
+}
 
 export type AudioStatus = "idle" | "loading" | "playing" | "paused" | "error";
 
@@ -72,6 +79,9 @@ export const useAudioStore = create<AudioState>((set, get) => ({
       // Проверка что за время загрузки пользователь не сменил источник
       if (get().currentKey === key) {
         set({ _audio: audio, status: "playing" });
+        // Считаем только реально начавшееся воспроизведение нового источника:
+        // возобновление с паузы выше по функции сюда не доходит.
+        track({ type: "audio_play", exhibitId: exhibitIdFromKey(key) });
       } else {
         audio.pause();
       }

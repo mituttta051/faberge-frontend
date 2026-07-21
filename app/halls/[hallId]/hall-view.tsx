@@ -8,10 +8,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useHall, useHallShowcases, useHallExhibits } from "@/lib/api/hooks";
+import { useTrackView } from "@/lib/telemetry";
 
 export function HallView({ hallId }: { hallId: number }) {
   const safeBack = useSafeBack();
   const { data: hall, isLoading: hallLoading } = useHall(hallId);
+  // Считаем просмотром только подтверждённый сервером зал: по битой ссылке
+  // маршрут посетителя рисоваться не должен.
+  useTrackView("hall_view", hall?.id);
   const { data: showcases } = useHallShowcases(hallId);
   const { data: exhibits } = useHallExhibits(hallId);
   // Джойн: у summary-экспоната есть showcaseId, а showcase_number приходит только у витрины,
