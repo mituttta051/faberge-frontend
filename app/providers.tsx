@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Spinner } from "@/components/ui/spinner";
+import { trackAppOpen } from "@/lib/telemetry";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,6 +19,10 @@ const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [mocksReady, setMocksReady] = useState(!USE_MOCKS);
+
+  useEffect(() => {
+    trackAppOpen();
+  }, []);
 
   useEffect(() => {
     if (!USE_MOCKS) return;

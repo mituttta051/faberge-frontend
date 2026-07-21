@@ -3,6 +3,7 @@ import type {
   ChatTurnResult,
   Exhibit,
   Hall,
+  QueuedTelemetryEvent,
   RecognitionCandidate,
   RecognizeResult,
   SearchResponse,
@@ -386,6 +387,41 @@ export async function chatWithGuide(input: ChatTurnInput): Promise<ChatTurnResul
         }
       : undefined,
   };
+}
+
+// ============================
+// Телеметрия
+// ============================
+
+/**
+ * Отправить пачку событий. Ответ (202 + счётчик) никому не нужен — вызывающий
+ * код не должен падать из-за аналитики, поэтому глотаем любую ошибку.
+ *
+ * `keepalive` нужен для отправки, когда посетитель уже уходит со страницы:
+ * обычный fetch браузер в этот момент отменяет, и последнее взаимодействие
+ * терялось бы, занижая метрику длительности сессии.
+ */
+export async function sendEvents(sessionId: string, events: QueuedTelemetryEvent[]): Promise<void> {
+  if (events.length === 0) return;
+  try {
+    await request<{ accepted: number }>("/telemetry/events", {
+      method: "POST",
+      keepalive: true,
+      json: {
+        session_id: sessionId,
+        events: events.map((e) => ({
+          type: e.type,
+          exhibit_id: e.exhibitId,
+          hall_id: e.hallId,
+          label_slug: e.labelSlug,
+          props: e.props,
+          ts: e.ts,
+        })),
+      },
+    });
+  } catch {
+    // Аналитика — не критичный путь: молча теряем пачку.
+  }
 }
 
 // ============================

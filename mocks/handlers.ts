@@ -523,4 +523,11 @@ export const handlers = [
       cached: false,
     });
   }),
+
+  // Телеметрия: в демо-режиме события никуда не уходят, но обработчик нужен —
+  // без него MSW пропустил бы запрос в реальный бэкенд и засорил аналитику.
+  http.post("*/telemetry/events", async ({ request }) => {
+    const body = (await request.json()) as { events?: unknown[] };
+    return HttpResponse.json({ accepted: body.events?.length ?? 0 }, { status: 202 });
+  }),
 ];

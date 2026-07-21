@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { CameraCapture } from "@/components/camera/camera-capture";
 import { useRecognizeExhibit } from "@/lib/api/hooks";
+import { track } from "@/lib/telemetry";
 
 type RecognizeStep = "camera" | "recognizing" | "result" | "not_recognized" | "error";
 
@@ -23,12 +24,17 @@ export default function RecognizePage() {
     setStep("recognizing");
     try {
       const result = await recognize.mutateAsync(blob);
-      if (result.recognized && result.exhibit) {
-        setStep("result");
-      } else {
-        setStep("not_recognized");
-      }
+      const ok = result.recognized && !!result.exhibit;
+      // `recognized` — то, по чему бэк считает долю удачных распознаваний.
+      track({
+        type: "recognition",
+        exhibitId: result.exhibit?.id,
+        labelSlug: result.labelSlug,
+        props: { recognized: ok, confidence: result.confidence },
+      });
+      setStep(ok ? "result" : "not_recognized");
     } catch {
+      track({ type: "recognition", props: { recognized: false, failed: true } });
       setStep("error");
     }
   };

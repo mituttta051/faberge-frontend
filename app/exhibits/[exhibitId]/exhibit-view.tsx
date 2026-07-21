@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AudioButton } from "@/components/audio/audio-button";
 import { useExhibit, useRelatedExhibits } from "@/lib/api/hooks";
+import { useTrackView } from "@/lib/telemetry";
 
 const ELLIPSIS_RE = /(?:…|\.{3})\s*$/;
 
@@ -25,6 +26,7 @@ export function ExhibitView({ exhibitId }: { exhibitId: number }) {
   const safeBack = useSafeBack();
   const { data: exhibit, isLoading } = useExhibit(exhibitId);
   const { data: related } = useRelatedExhibits(exhibitId);
+  useTrackView("exhibit_view", exhibit?.id);
 
   return (
     <Screen>
