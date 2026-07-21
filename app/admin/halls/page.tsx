@@ -7,6 +7,7 @@ import { useHalls } from "@/lib/api/hooks";
 import {
   useCreateHall,
   useDeleteHall,
+  useReorderHalls,
   useUpdateHall,
   useUploadHallCover,
 } from "@/lib/api/admin-hooks";
@@ -41,15 +42,35 @@ const columns: Column<Hall>[] = [
 ];
 
 export default function HallsAdminPage() {
-  const { data: halls = [], isLoading } = useHalls();
+  const { data, isLoading } = useHalls();
+  // Не `data = []` в деструктуризации: литерал создавал бы новый массив на
+  // каждом рендере, эффект синхронизации порядка ниже видел бы «новые» залы
+  // и уходил в бесконечный цикл, пока запрос не выполнен.
+  const halls = React.useMemo(() => data ?? [], [data]);
   const createMut = useCreateHall();
   const updateMut = useUpdateHall();
   const deleteMut = useDeleteHall();
   const coverMut = useUploadHallCover();
+  const reorderMut = useReorderHalls();
 
   const [formOpen, setFormOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<Hall | null>(null);
   const [deleting, setDeleting] = React.useState<Hall | null>(null);
+
+  // Локальная копия порядка: перетаскивание должно быть мгновенным, а не ждать
+  // ответа сервера. React Query держит ссылку на data стабильной, пока данные
+  // не изменились, поэтому эффект срабатывает только на реальном обновлении.
+  const [rows, setRows] = React.useState<Hall[]>(halls);
+  React.useEffect(() => setRows(halls), [halls]);
+
+  function handleReorder(next: Hall[]) {
+    const previous = rows;
+    setRows(next);
+    reorderMut.mutate(
+      next.map((h) => h.id),
+      { onError: () => setRows(previous) },
+    );
+  }
 
   function openCreate() {
     setEditing(null);
@@ -106,21 +127,30 @@ export default function HallsAdminPage() {
       <header className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl">Залы</h1>
-          <p className="text-muted-foreground mt-1 text-sm">{halls.length} залов</p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {halls.length} залов · порядок задаётся перетаскиванием за ручку
+          </p>
         </div>
         <Button leftIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>
           Добавить
         </Button>
       </header>
 
+      {reorderMut.error && (
+        <p className="text-destructive mb-3 text-sm">
+          Не удалось сохранить порядок: {errorMessage(reorderMut.error)}
+        </p>
+      )}
+
       <DataTable
         columns={columns}
-        rows={halls}
+        rows={rows}
         rowKey={(h) => h.id}
         loading={isLoading}
         onRowClick={openEdit}
         onEdit={openEdit}
         onDelete={setDeleting}
+        onReorder={handleReorder}
       />
 
       <Modal open={formOpen} onOpenChange={setFormOpen} title={editing ? "Редактировать зал" : "Новый зал"}>
