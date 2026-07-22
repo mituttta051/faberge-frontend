@@ -3,14 +3,12 @@
 import { Suspense, useDeferredValue, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Building2, Camera, ChevronDown, List, Map as MapIcon, MessageCircle, Search, Sparkles } from "lucide-react";
+import { Building2, Camera, ChevronDown, MessageCircle, Search, Sparkles } from "lucide-react";
 import { Screen } from "@/components/ui/screen";
 import { AppBar } from "@/components/ui/app-bar";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { useHalls, useSearchCatalog } from "@/lib/api/hooks";
@@ -43,15 +41,6 @@ const TOUR_STEPS: TourStep[] = [
   },
 ];
 
-// Карта тянет react-zoom-pan-pinch (клиентская), грузим только в браузере.
-const InteractiveMap = dynamic(
-  () => import("@/components/map/interactive-map").then((m) => m.InteractiveMap),
-  {
-    ssr: false,
-    loading: () => <Skeleton className="aspect-[794/533] w-full" />,
-  },
-);
-
 export default function HomePage() {
   return (
     <Suspense fallback={null}>
@@ -65,14 +54,11 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [hallsView, setHallsView] = useState<"map" | "list">("map");
   const [hallsSheetOpen, setHallsSheetOpen] = useState(false);
   const [showTour, setShowTour] = useState(false);
 
   const typeParam = searchParams.get("type");
   const expositionChosen = typeParam === "permanent" || typeParam === "temporary";
-  // Для временной экспозиции карта неинформативна (обычно 1 зал), сразу показываем список.
-  const mapAvailable = typeParam !== "temporary";
 
   // QR deep-link: /?hall=4 → /halls/4, /?exhibit=1001 → /exhibits/1001
   useEffect(() => {
@@ -213,77 +199,31 @@ function HomeContent() {
                 ← сменить экспозицию
               </Link>
             </div>
-
-            {mapAvailable && (
-              <div className="border-border flex border" role="group" aria-label="Вид залов">
-                <button
-                  type="button"
-                  aria-pressed={hallsView === "map"}
-                  onClick={() => setHallsView("map")}
-                  className={cn(
-                    "flex h-8 items-center gap-1.5 px-3 text-xs font-medium transition-colors",
-                    hallsView === "map"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted",
-                  )}
-                >
-                  <MapIcon className="h-3.5 w-3.5" />
-                  Карта
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={hallsView === "list"}
-                  onClick={() => setHallsView("list")}
-                  className={cn(
-                    "border-border flex h-8 items-center gap-1.5 border-l px-3 text-xs font-medium transition-colors",
-                    hallsView === "list"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted",
-                  )}
-                >
-                  <List className="h-3.5 w-3.5" />
-                  Список
-                </button>
-              </div>
-            )}
           </div>
 
           {error && (
             <p className="text-destructive text-sm">Не удалось загрузить залы: {String(error)}</p>
           )}
 
-          {mapAvailable && hallsView === "map" && (
-            <>
-              <div data-tour="map">
-                <InteractiveMap halls={halls ?? []} />
-              </div>
-              <p className="text-muted-foreground text-center text-xs">
-                Нажмите на номер зала, чтобы открыть его. Жесты — зум и перемещение.
-              </p>
-            </>
-          )}
-
-          {(!mapAvailable || hallsView === "list") && (
-            <button
-              type="button"
-              onClick={() => setHallsSheetOpen(true)}
-              disabled={isLoading || !halls?.length}
-              className={cn(
-                "border-border bg-background hover:bg-muted flex items-center justify-between gap-3 border px-4 py-3 text-left transition-colors",
-                "disabled:cursor-not-allowed disabled:opacity-60",
-              )}
-            >
-              <span className="min-w-0 flex-1">
-                <span className="text-muted-foreground text-[10px] tracking-widest uppercase">
-                  Зал
-                </span>
-                <span className="mt-0.5 block truncate text-sm">
-                  {isLoading ? "Загружаем залы…" : `Выберите зал из ${halls?.length ?? 0}`}
-                </span>
+          <button
+            type="button"
+            onClick={() => setHallsSheetOpen(true)}
+            disabled={isLoading || !halls?.length}
+            className={cn(
+              "border-border bg-background hover:bg-muted flex items-center justify-between gap-3 border px-4 py-3 text-left transition-colors",
+              "disabled:cursor-not-allowed disabled:opacity-60",
+            )}
+          >
+            <span className="min-w-0 flex-1">
+              <span className="text-muted-foreground text-[10px] tracking-widest uppercase">
+                Зал
               </span>
-              <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
-            </button>
-          )}
+              <span className="mt-0.5 block truncate text-sm">
+                {isLoading ? "Загружаем залы…" : `Выберите зал из ${halls?.length ?? 0}`}
+              </span>
+            </span>
+            <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
+          </button>
         </section>
         )}
       </main>
