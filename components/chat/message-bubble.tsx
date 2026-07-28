@@ -5,6 +5,9 @@ import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/lib/types";
 import { Markdown } from "./markdown";
 import { ExhibitPlaque } from "./exhibit-plaque";
+import { LocationHint } from "./location-hint";
+import { ReferencedExhibits } from "./referenced-exhibits";
+import { ReferencedHalls } from "./referenced-halls";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -33,6 +36,16 @@ export function MessageBubble({ message, trailing }: MessageBubbleProps) {
               />
             )}
             {message.content && <Markdown>{message.content}</Markdown>}
+            {message.location && <LocationHint location={message.location} />}
+            {message.referencedExhibits && message.referencedExhibits.length > 0 && (
+              <ReferencedExhibits
+                items={message.referencedExhibits}
+                label={message.referencedExhibitsLabel}
+              />
+            )}
+            {message.referencedHalls && message.referencedHalls.length > 0 && (
+              <ReferencedHalls items={message.referencedHalls} />
+            )}
           </div>
           {trailing && <div className="mt-2">{trailing}</div>}
         </div>

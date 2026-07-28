@@ -1,5 +1,8 @@
 import type {
   ChatContext,
+  ChatExhibitRef,
+  ChatHallRef,
+  ChatLocation,
   ChatTurnResult,
   Exhibit,
   Hall,
@@ -89,6 +92,8 @@ interface WireRecognitionCandidate {
   label_slug: string;
   name?: string | null;
   confidence: number;
+  exhibit_id?: number | null;
+  thumbnail_url?: string | null;
 }
 
 interface WireRecognitionResponse {
@@ -119,6 +124,27 @@ interface WireStoryResponse {
   generated_at?: string | null;
 }
 
+interface WireReferencedExhibit {
+  id: number;
+  name: string;
+  exhibit_number?: string | null;
+  thumbnail_url?: string | null;
+  hall_number?: number | null;
+  showcase_number?: number | null;
+}
+
+interface WireReferencedHall {
+  id: number;
+  hall_number: number;
+  name?: string | null;
+}
+
+interface WireGuideLocation {
+  hall_number?: number | null;
+  hall_name?: string | null;
+  showcase_number?: number | null;
+}
+
 interface WireChatResponse {
   session_id: string;
   answer: string;
@@ -128,6 +154,9 @@ interface WireChatResponse {
     label_slug?: string | null;
     hall_id?: number | null;
   } | null;
+  referenced_exhibits?: WireReferencedExhibit[];
+  referenced_halls?: WireReferencedHall[];
+  location?: WireGuideLocation | null;
 }
 
 interface WireSpeechResponse {
@@ -207,6 +236,35 @@ function mapCandidate(c: WireRecognitionCandidate): RecognitionCandidate {
     labelSlug: c.label_slug,
     name: c.name ?? undefined,
     confidence: c.confidence,
+    exhibitId: c.exhibit_id ?? undefined,
+    thumbnailUrl: c.thumbnail_url ?? undefined,
+  };
+}
+
+function mapReferencedExhibit(e: WireReferencedExhibit): ChatExhibitRef {
+  return {
+    id: e.id,
+    name: e.name,
+    exhibitNumber: e.exhibit_number ?? undefined,
+    thumbnailUrl: e.thumbnail_url ?? undefined,
+    hallNumber: e.hall_number ?? undefined,
+    showcaseNumber: e.showcase_number ?? undefined,
+  };
+}
+
+function mapReferencedHall(h: WireReferencedHall): ChatHallRef {
+  return {
+    id: h.id,
+    hallNumber: h.hall_number,
+    name: h.name ?? undefined,
+  };
+}
+
+function mapGuideLocation(l: WireGuideLocation): ChatLocation {
+  return {
+    hallNumber: l.hall_number ?? undefined,
+    hallName: l.hall_name ?? undefined,
+    showcaseNumber: l.showcase_number ?? undefined,
   };
 }
 
@@ -386,6 +444,9 @@ export async function chatWithGuide(input: ChatTurnInput): Promise<ChatTurnResul
           hallId: res.context.hall_id ?? undefined,
         }
       : undefined,
+    referencedExhibits: (res.referenced_exhibits ?? []).map(mapReferencedExhibit),
+    referencedHalls: (res.referenced_halls ?? []).map(mapReferencedHall),
+    location: res.location ? mapGuideLocation(res.location) : undefined,
   };
 }
 
