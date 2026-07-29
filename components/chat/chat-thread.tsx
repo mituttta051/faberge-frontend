@@ -43,13 +43,26 @@ export function ChatThread({
 }: ChatThreadProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const lastMessage = messages[messages.length - 1];
 
-  // Авто-скролл к низу при новых сообщениях / thinking
+  // Скролл после нового сообщения. Ответ гида длинный, а под ним ещё подсказки и
+  // рекомендации, поэтому «в самый низ» уводило окно мимо начала ответа — читать
+  // приходилось, листая чат вверх. Теперь на ответ гида подводим окно к его началу,
+  // а к низу скроллим только своё сообщение и индикатор «печатает».
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
+    if (!thinking && lastMessage?.role === "assistant") {
+      const node = el.querySelector<HTMLElement>(`[data-message-id="${lastMessage.id}"]`);
+      if (node) {
+        const top =
+          node.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop;
+        el.scrollTo({ top: Math.max(0, top - 12), behavior: "smooth" });
+        return;
+      }
+    }
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [messages.length, thinking, suggestions]);
+  }, [lastMessage?.id, lastMessage?.role, thinking]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -25,10 +25,7 @@ export function HallView({ hallId }: { hallId: number }) {
 
   return (
     <Screen>
-      <AppBar
-        onBack={safeBack}
-        title={hall?.name ?? (hall ? `Зал № ${hall.hallNumber}` : "Зал")}
-      />
+      <AppBar onBack={safeBack} title={hall?.name ?? (hall ? `Зал № ${hall.hallNumber}` : "Зал")} />
       <main className="flex flex-1 flex-col gap-6 px-6 py-6">
         {hallLoading && (
           <>
@@ -93,9 +90,11 @@ export function HallView({ hallId }: { hallId: number }) {
                         href={`/exhibits/${e.id}`}
                         className="hover:bg-muted -mx-2 flex items-baseline gap-2 px-2 py-2 text-sm"
                       >
-                        {num !== undefined && (
+                        {/* Номер экспоната по путеводителю; номер витрины — отдельной
+                            подписью справа, иначе две разные нумерации сливаются. */}
+                        {e.exhibitNumber && (
                           <span className="text-muted-foreground font-mono text-xs tabular-nums">
-                            {num}
+                            {e.exhibitNumber}
                           </span>
                         )}
                         <span className="min-w-0 flex-1">
@@ -104,6 +103,11 @@ export function HallView({ hallId }: { hallId: number }) {
                             <span className="text-muted-foreground"> · {e.yearCreated}</span>
                           )}
                         </span>
+                        {num !== undefined && (
+                          <span className="text-muted-foreground shrink-0 text-xs">
+                            витрина {num}
+                          </span>
+                        )}
                       </Link>
                     </li>
                   );

@@ -1,6 +1,8 @@
 /** Экспонат — основная сущность каталога. */
 export interface Exhibit {
   id: number;
+  /** Номер экспоната по путеводителю музея (строка: «01», «12а»). Ставится перед названием. */
+  exhibitNumber?: string;
   showcaseId?: number;
   /** ID зала. У полной карточки приходит через `hall.id`, у summary — как `hall_id`. */
   hallId?: number;

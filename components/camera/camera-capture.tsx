@@ -88,7 +88,7 @@ export function CameraCapture({ onCapture, className }: CameraCaptureProps) {
           <div className="pointer-events-none absolute inset-x-8 top-1/4 bottom-1/4 border-2 border-white/70" />
 
           <p className="absolute top-6 right-0 left-0 text-center text-xs tracking-widest uppercase opacity-80">
-            Наведи камеру на экспонат
+            Наведите камеру на экспонат
           </p>
 
           {/* Кнопка спуска */}

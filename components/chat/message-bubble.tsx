@@ -20,7 +20,9 @@ export function MessageBubble({ message, trailing }: MessageBubbleProps) {
 
   if (isAssistant) {
     return (
-      <div className="flex gap-3">
+      // data-message-id — якорь для скролла: тред подводит окно к началу ответа
+      // гида, а не к его концу (см. ChatThread).
+      <div className="flex gap-3" data-message-id={message.id}>
         <div className="border-border bg-muted flex h-8 w-8 shrink-0 items-center justify-center border">
           <Sparkles className="text-accent h-4 w-4" />
         </div>
