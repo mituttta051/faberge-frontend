@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useHall, useHallShowcases, useHallExhibits } from "@/lib/api/hooks";
 import { useTrackView } from "@/lib/telemetry";
+import { byShowcaseNumber, hallNumberCaption, hallTitle, showcaseTitle } from "@/lib/labels";
 
 export function HallView({ hallId }: { hallId: number }) {
   const safeBack = useSafeBack();
@@ -21,11 +22,13 @@ export function HallView({ hallId }: { hallId: number }) {
   // Джойн: у summary-экспоната есть showcaseId, а showcase_number приходит только у витрины,
   // поэтому строим Map на клиенте — обе выборки уже загружены.
   const showcaseNumberById = new Map<number, number>();
-  showcases?.forEach((s) => showcaseNumberById.set(s.id, s.showcaseNumber));
+  showcases?.forEach((s) => {
+    if (s.showcaseNumber != null) showcaseNumberById.set(s.id, s.showcaseNumber);
+  });
 
   return (
     <Screen>
-      <AppBar onBack={safeBack} title={hall?.name ?? (hall ? `Зал № ${hall.hallNumber}` : "Зал")} />
+      <AppBar onBack={safeBack} title={hall ? hallTitle(hall) : "Зал"} />
       <main className="flex flex-1 flex-col gap-6 px-6 py-6">
         {hallLoading && (
           <>
@@ -39,12 +42,11 @@ export function HallView({ hallId }: { hallId: number }) {
           <>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <Badge>Зал № {hall.hallNumber}</Badge>
+                {/* Зал без номера («Вне постоянной экспозиции») — бейдж не рисуем. */}
+                {hallNumberCaption(hall) && <Badge>{hallNumberCaption(hall)}</Badge>}
                 {hall.isTemporary && <Badge variant="outline">Временная выставка</Badge>}
               </div>
-              <h1 className="font-display mt-3 text-2xl tracking-tight">
-                {hall.name ?? `Зал № ${hall.hallNumber}`}
-              </h1>
+              <h1 className="font-display mt-3 text-2xl tracking-tight">{hallTitle(hall)}</h1>
               {hall.description && (
                 <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
                   {hall.description}
@@ -63,13 +65,13 @@ export function HallView({ hallId }: { hallId: number }) {
                 Витрины ({showcases?.length ?? 0})
               </h2>
               <ul className="mt-3 flex flex-col gap-2">
-                {showcases?.map((s) => (
+                {[...(showcases ?? [])].sort(byShowcaseNumber).map((s) => (
                   <li key={s.id}>
                     <Link
                       href={`/showcases/${s.id}`}
                       className="border-border hover:bg-muted block border p-3 transition-colors"
                     >
-                      <p className="text-muted-foreground text-xs">Витрина № {s.showcaseNumber}</p>
+                      <p className="text-muted-foreground text-xs">{showcaseTitle(s)}</p>
                       <p className="mt-1 text-sm">{s.name ?? "Без названия"}</p>
                     </Link>
                   </li>

@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/admin-hooks";
 import { errorMessage } from "@/lib/utils";
 import { hallLabel, showcaseLabel } from "@/lib/admin/labels";
+import { byShowcaseNumber } from "@/lib/labels";
 import { groupByHall } from "@/lib/admin/grouping";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -33,13 +34,7 @@ export default function ShowcasesAdminPage() {
   const [deleting, setDeleting] = React.useState<Showcase | null>(null);
 
   const groups = React.useMemo(
-    () =>
-      groupByHall(
-        showcases,
-        halls,
-        (s) => s.hallId,
-        (a, b) => a.showcaseNumber - b.showcaseNumber,
-      ),
+    () => groupByHall(showcases, halls, (s) => s.hallId, byShowcaseNumber),
     [showcases, halls],
   );
 

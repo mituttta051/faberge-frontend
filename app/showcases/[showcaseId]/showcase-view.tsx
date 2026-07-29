@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Screen } from "@/components/ui/screen";
 import { AppBar } from "@/components/ui/app-bar";
 import { useSafeBack } from "@/lib/hooks/use-safe-back";
+import { showcaseTitle } from "@/lib/labels";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useShowcase, useShowcaseExhibits } from "@/lib/api/hooks";
 
@@ -14,10 +15,7 @@ export function ShowcaseView({ showcaseId }: { showcaseId: number }) {
 
   return (
     <Screen>
-      <AppBar
-        onBack={safeBack}
-        title={showcase ? `Витрина № ${showcase.showcaseNumber}` : "Витрина"}
-      />
+      <AppBar onBack={safeBack} title={showcase ? showcaseTitle(showcase) : "Витрина"} />
       <main className="flex flex-1 flex-col gap-6 px-6 py-6">
         {isLoading && (
           <>
@@ -30,9 +28,10 @@ export function ShowcaseView({ showcaseId }: { showcaseId: number }) {
             <h1 className="font-display text-2xl tracking-tight">
               {showcase.name ?? "Без названия"}
             </h1>
-            <p className="text-muted-foreground mt-2 text-sm">
-              Витрина № {showcase.showcaseNumber}
-            </p>
+            {/* У витрины без номера заголовок и название совпадают — не дублируем. */}
+            {showcaseTitle(showcase) !== showcase.name && (
+              <p className="text-muted-foreground mt-2 text-sm">{showcaseTitle(showcase)}</p>
+            )}
           </div>
         )}
         <section>

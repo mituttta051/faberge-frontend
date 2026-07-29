@@ -20,6 +20,7 @@ import { getExhibit, getExhibitBySlug } from "@/lib/api/endpoints";
 import { useChatStore } from "@/lib/store/chat-store";
 import { useSafeBack } from "@/lib/hooks/use-safe-back";
 import { RelatedRecommendations } from "@/components/chat/related-recommendations";
+import { hallTitle } from "@/lib/labels";
 import type { ChatContext, ChatExhibitCard, ChatExhibitRef, Exhibit } from "@/lib/types";
 
 /** Подсказки для общего чата (без контекста экспоната/зала). */
@@ -30,7 +31,8 @@ const DEFAULT_PROMPTS = [
 ];
 
 function uid(prefix: string): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return `${prefix}_${crypto.randomUUID()}`;
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto)
+    return `${prefix}_${crypto.randomUUID()}`;
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 }
 
@@ -86,7 +88,20 @@ function ChatContent() {
     const exhibitId = exhibitRaw ? Number(exhibitRaw) : undefined;
     const hallId = hallRaw ? Number(hallRaw) : undefined;
     const hasCtx = exhibitId !== undefined || hallId !== undefined || !!labelSlug;
-    if (!hasCtx) return;
+    if (!hasCtx) {
+      // Контекст из URL уже применён в этом монтировании, а параметры пропали
+      // из-за router.replace («/chat» ниже) — это не «посетитель открыл общий чат».
+      if (processedContextRef.current !== null) return;
+      // Общий чат (кнопка с главного экрана): контекст прошлого зала не должен
+      // сужать ответы — иначе на общий вопрос гид отвечает «в материалах о зале
+      // такого нет». Пустой контекст бэкенд трактует как явный сброс сессии.
+      const store = useChatStore.getState();
+      const current = store.chat?.context;
+      if (current && Object.values(current).some((v) => v !== undefined)) {
+        store.setContext({});
+      }
+      return;
+    }
 
     const key = `${exhibitId ?? ""}|${hallId ?? ""}|${labelSlug ?? ""}`;
     if (processedContextRef.current === key) return;
@@ -100,11 +115,12 @@ function ChatContent() {
     // Для экспоната/label — параллельно тянем сам экспонат (для плашки) и story-рассказ,
     // потом кладём одним сообщением с плашкой + текстом. История не стирается.
     if (exhibitId !== undefined || labelSlug) {
-      const exhibitPromise: Promise<Exhibit | null> = exhibitId !== undefined
-        ? getExhibit(exhibitId).catch(() => null)
-        : labelSlug
-          ? getExhibitBySlug(labelSlug).catch(() => null)
-          : Promise.resolve(null);
+      const exhibitPromise: Promise<Exhibit | null> =
+        exhibitId !== undefined
+          ? getExhibit(exhibitId).catch(() => null)
+          : labelSlug
+            ? getExhibitBySlug(labelSlug).catch(() => null)
+            : Promise.resolve(null);
       const storyPromise = story.mutateAsync({ exhibitId, labelSlug, maxQuestions: 4 });
       Promise.all([exhibitPromise, storyPromise])
         .then(([ex, s]) => {
@@ -201,7 +217,11 @@ function ChatContent() {
         const candidates = res.candidates ?? [];
         const refs: ChatExhibitRef[] = candidates
           .filter((c): c is typeof c & { exhibitId: number } => c.exhibitId !== undefined)
-          .map((c) => ({ id: c.exhibitId, name: c.name ?? c.labelSlug, thumbnailUrl: c.thumbnailUrl }));
+          .map((c) => ({
+            id: c.exhibitId,
+            name: c.name ?? c.labelSlug,
+            thumbnailUrl: c.thumbnailUrl,
+          }));
         const names = candidates
           .filter((c) => c.exhibitId === undefined)
           .map((c) => c.name)
@@ -240,8 +260,8 @@ function ChatContent() {
     ? { label: contextExhibit.name, hint: contextExhibit.yearCreated?.toString() }
     : contextHall
       ? {
-          label: contextHall.name ?? `Зал № ${contextHall.hallNumber}`,
-          hint: `зал № ${contextHall.hallNumber}`,
+          label: hallTitle(contextHall),
+          hint: contextHall.hallNumber != null ? `зал № ${contextHall.hallNumber}` : undefined,
         }
       : null;
 

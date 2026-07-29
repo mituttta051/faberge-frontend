@@ -25,16 +25,14 @@ export function ShowcaseForm({
   error,
 }: ShowcaseFormProps) {
   const [hallId, setHallId] = React.useState(String(initial?.hallId ?? halls[0]?.id ?? ""));
-  const [showcaseNumber, setShowcaseNumber] = React.useState(
-    String(initial?.showcaseNumber ?? ""),
-  );
+  const [showcaseNumber, setShowcaseNumber] = React.useState(String(initial?.showcaseNumber ?? ""));
   const [name, setName] = React.useState(initial?.name ?? "");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     onSubmit({
       hallId: Number(hallId) || 0,
-      showcaseNumber: Number(showcaseNumber) || 0,
+      showcaseNumber: showcaseNumber.trim() === "" ? undefined : Number(showcaseNumber),
       name: name.trim() || undefined,
     });
   }
@@ -50,13 +48,12 @@ export function ShowcaseForm({
           ))}
         </Select>
       </Field>
-      <Field label="Номер витрины" required>
+      <Field label="Номер витрины" hint="Пусто — группа «не в витринах» из путеводителя.">
         <Input
           type="number"
           inputMode="numeric"
           value={showcaseNumber}
           onChange={(e) => setShowcaseNumber(e.target.value)}
-          required
         />
       </Field>
       <Field label="Название">

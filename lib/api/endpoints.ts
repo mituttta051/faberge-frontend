@@ -22,12 +22,13 @@ import { fetchAllPaged, request } from "./client";
 
 interface WireHall {
   id: number;
-  hall_number: number;
+  hall_number?: number | null;
   name?: string | null;
   description?: string | null;
   level?: number | null;
   cover_image_url?: string | null;
   is_temporary?: boolean | null;
+  is_service?: boolean | null;
   sort_order?: number | null;
   showcase_count?: number | null;
   exhibit_count?: number | null;
@@ -35,21 +36,21 @@ interface WireHall {
 
 interface WireHallBrief {
   id: number;
-  hall_number: number;
+  hall_number?: number | null;
   name?: string | null;
 }
 
 interface WireShowcase {
   id: number;
   hall_id: number;
-  showcase_number: number;
+  showcase_number?: number | null;
   name?: string | null;
   exhibit_count?: number | null;
 }
 
 interface WireShowcaseBrief {
   id: number;
-  showcase_number: number;
+  showcase_number?: number | null;
 }
 
 interface WireExhibitSummary {
@@ -137,7 +138,7 @@ interface WireReferencedExhibit {
 
 interface WireReferencedHall {
   id: number;
-  hall_number: number;
+  hall_number?: number | null;
   name?: string | null;
 }
 
@@ -177,7 +178,7 @@ interface WireSpeechResponse {
 function mapHall(h: WireHall): Hall {
   return {
     id: h.id,
-    hallNumber: h.hall_number,
+    hallNumber: h.hall_number ?? undefined,
     name: h.name ?? undefined,
     description: h.description ?? undefined,
     level: h.level ?? undefined,
@@ -185,6 +186,7 @@ function mapHall(h: WireHall): Hall {
     showcaseCount: h.showcase_count ?? undefined,
     exhibitCount: h.exhibit_count ?? undefined,
     isTemporary: h.is_temporary ?? undefined,
+    isService: h.is_service ?? undefined,
     sortOrder: h.sort_order ?? undefined,
   };
 }
@@ -193,7 +195,7 @@ function mapShowcase(s: WireShowcase): Showcase {
   return {
     id: s.id,
     hallId: s.hall_id,
-    showcaseNumber: s.showcase_number,
+    showcaseNumber: s.showcase_number ?? undefined,
     name: s.name ?? undefined,
     exhibitCount: s.exhibit_count ?? undefined,
   };
@@ -259,7 +261,7 @@ function mapReferencedExhibit(e: WireReferencedExhibit): ChatExhibitRef {
 function mapReferencedHall(h: WireReferencedHall): ChatHallRef {
   return {
     id: h.id,
-    hallNumber: h.hall_number,
+    hallNumber: h.hall_number ?? undefined,
     name: h.name ?? undefined,
   };
 }
@@ -424,6 +426,9 @@ export async function chatWithGuide(input: ChatTurnInput): Promise<ChatTurnResul
     method: "POST",
     json: {
       session_id: input.sessionId,
+      // Пустой объект здесь — не то же самое, что отсутствие поля: `context: {}`
+      // бэкенд трактует как явный сброс контекста сессии, а пропущенное поле —
+      // как «оставь сохранённый». Схлопывать одно в другое нельзя.
       context: input.context
         ? {
             exhibit_id: input.context.exhibitId,

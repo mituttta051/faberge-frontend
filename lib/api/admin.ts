@@ -17,7 +17,7 @@ import { fetchAllPaged, request, setAdminToken } from "./client";
 
 interface WireHall {
   id: number;
-  hall_number: number;
+  hall_number?: number | null;
   name?: string | null;
   description?: string | null;
   cover_image_url?: string | null;
@@ -30,7 +30,7 @@ interface WireHall {
 interface WireShowcase {
   id: number;
   hall_id: number;
-  showcase_number: number;
+  showcase_number?: number | null;
   name?: string | null;
   exhibit_count?: number | null;
 }
@@ -79,7 +79,7 @@ function mapImage(i: WireImage): ExhibitImage {
 function mapHall(h: WireHall): Hall {
   return {
     id: h.id,
-    hallNumber: h.hall_number,
+    hallNumber: h.hall_number ?? undefined,
     name: h.name ?? undefined,
     description: h.description ?? undefined,
     coverImageUrl: h.cover_image_url ?? undefined,
@@ -94,7 +94,7 @@ function mapShowcase(s: WireShowcase): Showcase {
   return {
     id: s.id,
     hallId: s.hall_id,
-    showcaseNumber: s.showcase_number,
+    showcaseNumber: s.showcase_number ?? undefined,
     name: s.name ?? undefined,
     exhibitCount: s.exhibit_count ?? undefined,
   };
@@ -119,7 +119,7 @@ function mapAdminExhibit(e: WireAdminExhibit): AdminExhibit {
 // domain → wire (для записи)
 function hallToWire(input: HallInput) {
   return {
-    hall_number: input.hallNumber,
+    hall_number: input.hallNumber ?? null,
     name: input.name ?? null,
     description: input.description ?? null,
     cover_image_url: input.coverImageUrl ?? null,
@@ -129,7 +129,7 @@ function hallToWire(input: HallInput) {
 function showcaseToWire(input: ShowcaseInput) {
   return {
     hall_id: input.hallId,
-    showcase_number: input.showcaseNumber,
+    showcase_number: input.showcaseNumber ?? null,
     name: input.name ?? null,
   };
 }
@@ -166,7 +166,9 @@ export async function getAllExhibits(): Promise<AdminExhibit[]> {
 // ============================
 
 export async function createHall(input: HallInput): Promise<Hall> {
-  return mapHall(await request<WireHall>("/admin/halls", { method: "POST", json: hallToWire(input) }));
+  return mapHall(
+    await request<WireHall>("/admin/halls", { method: "POST", json: hallToWire(input) }),
+  );
 }
 
 export async function updateHall(id: number, input: HallInput): Promise<Hall> {
@@ -215,7 +217,10 @@ export async function uploadHallCover(hallId: number, file: File): Promise<Hall>
 
 export async function createShowcase(input: ShowcaseInput): Promise<Showcase> {
   return mapShowcase(
-    await request<WireShowcase>("/admin/showcases", { method: "POST", json: showcaseToWire(input) }),
+    await request<WireShowcase>("/admin/showcases", {
+      method: "POST",
+      json: showcaseToWire(input),
+    }),
   );
 }
 
@@ -240,7 +245,10 @@ export async function deleteShowcase(id: number): Promise<void> {
 
 export async function createExhibit(input: ExhibitInput): Promise<AdminExhibit> {
   return mapAdminExhibit(
-    await request<WireAdminExhibit>("/admin/exhibits", { method: "POST", json: exhibitToWire(input) }),
+    await request<WireAdminExhibit>("/admin/exhibits", {
+      method: "POST",
+      json: exhibitToWire(input),
+    }),
   );
 }
 

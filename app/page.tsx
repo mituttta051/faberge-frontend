@@ -12,6 +12,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { useHalls, useSearchCatalog } from "@/lib/api/hooks";
 import { HallList } from "@/components/halls/hall-list";
+import { hallTitle } from "@/lib/labels";
 import { CoachMarkTour, type TourStep } from "@/components/tour/coach-mark-tour";
 import { SiteFooter } from "@/components/layout/site-footer";
 
@@ -253,9 +254,7 @@ function HomeContent() {
                   <span className="text-muted-foreground text-xs tracking-widest uppercase">
                     Зал
                   </span>
-                  <span className="min-w-0 flex-1 truncate">
-                    {h.name ?? `Зал № ${h.hallNumber}`}
-                  </span>
+                  <span className="min-w-0 flex-1 truncate">{hallTitle(h)}</span>
                   {h.isTemporary && (
                     <span className="border-border text-muted-foreground shrink-0 border px-1.5 py-px text-[10px] tracking-widest uppercase">
                       временная

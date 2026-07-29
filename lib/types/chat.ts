@@ -47,7 +47,8 @@ export interface ChatExhibitRef {
 /** Зал, упомянутый в ответе гида (C25) — ссылка на /halls/[id]. */
 export interface ChatHallRef {
   id: number;
-  hallNumber: number;
+  /** Номера может не быть — зал «Вне постоянной экспозиции». */
+  hallNumber?: number;
   name?: string;
 }
 

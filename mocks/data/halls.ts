@@ -4,7 +4,8 @@
  */
 export interface MockHall {
   id: number;
-  hallNumber: number;
+  /** Пусто — зал без номера («Вне постоянной экспозиции»), бэкенд отдаёт null. */
+  hallNumber?: number;
   name: string;
   shortDescription: string;
   description?: string;
@@ -108,5 +109,13 @@ export const halls: MockHall[] = [
     shortDescription: "Русская эмаль и посуда.",
     description: "Финальный зал экспозиции: русская эмаль и парадная посуда.",
     coverImageUrl: "https://placehold.co/800x500/d4c5a0/0a0a0a?text=Beige+Hall",
+  },
+  {
+    // Зал без номера — проверяем, что подписи «Зал № …» нигде не всплывают
+    // пустыми (бэкенд отдаёт hall_number: null с 29.07.2026).
+    id: 99,
+    name: "Вне постоянной экспозиции",
+    shortDescription: "Предметы, временно не выставленные в залах.",
+    description: "Экспонаты, которые сейчас не входят в постоянную экспозицию музея.",
   },
 ];

@@ -10,7 +10,8 @@ import type { Exhibit } from "./exhibit";
 
 /** Данные формы зала. */
 export interface HallInput {
-  hallNumber: number;
+  /** Пусто — зал без номера («Вне постоянной экспозиции»), бэкенд примет null. */
+  hallNumber?: number;
   name?: string;
   description?: string;
   coverImageUrl?: string;
@@ -19,7 +20,8 @@ export interface HallInput {
 /** Данные формы витрины. */
 export interface ShowcaseInput {
   hallId: number;
-  showcaseNumber: number;
+  /** Пусто — витрина без номера, то есть группа «не в витринах». */
+  showcaseNumber?: number;
   name?: string;
 }
 
