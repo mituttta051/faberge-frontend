@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useDeferredValue, useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Building2, Camera, ChevronDown, MessageCircle, Search, Sparkles } from "lucide-react";
@@ -12,32 +11,42 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Sheet } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { useHalls, useSearchCatalog } from "@/lib/api/hooks";
-import { cn } from "@/lib/utils";
+import { HallList } from "@/components/halls/hall-list";
 import { CoachMarkTour, type TourStep } from "@/components/tour/coach-mark-tour";
 import { SiteFooter } from "@/components/layout/site-footer";
 
 const TOUR_SEEN_KEY = "museum-tour-seen";
 
+/** «1 зал», «3 зала», «10 залов» — склонение для счётчика в шапке. */
+function hallsWord(n: number): string {
+  const mod100 = n % 100;
+  const mod10 = n % 10;
+  if (mod100 >= 11 && mod100 <= 14) return "залов";
+  if (mod10 === 1) return "зал";
+  if (mod10 >= 2 && mod10 <= 4) return "зала";
+  return "залов";
+}
+
 const TOUR_STEPS: TourStep[] = [
   {
     selector: '[data-tour="recognize"]',
     title: "Распознать экспонат",
-    text: "Наведи камеру на предмет, и AI подскажет, что это, и предложит рассказ.",
+    text: "Наведите камеру на предмет, и AI подскажет, что это, и предложит рассказ.",
   },
   {
     selector: '[data-tour="chat"]',
     title: "Чат с AI-гидом",
-    text: "Спроси о любой вещи в коллекции — от истории мастера до символики орнамента.",
+    text: "Спросите о любой вещи в коллекции — от истории мастера до символики орнамента.",
   },
   {
     selector: '[data-tour="expositions"]',
     title: "Экспозиции музея",
-    text: "Выбирай, что посмотреть: постоянную коллекцию или временные выставки.",
+    text: "Выбирайте, что посмотреть: постоянную коллекцию или временные выставки.",
   },
   {
     selector: '[data-tour="search"]',
     title: "Поиск по музею",
-    text: "Ищи экспонат или зал по названию — результаты появляются на лету.",
+    text: "Ищите экспонат или зал по названию — результаты появляются на лету.",
   },
 ];
 
@@ -54,7 +63,6 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [hallsSheetOpen, setHallsSheetOpen] = useState(false);
   const [showTour, setShowTour] = useState(false);
 
   const typeParam = searchParams.get("type");
@@ -122,8 +130,13 @@ function HomeContent() {
           <p className="text-muted-foreground text-xs tracking-widest uppercase">AI-гид</p>
           <h1 className="font-display mt-2 text-3xl tracking-tight">Знакомство с экспозицией</h1>
           <p className="text-muted-foreground mt-3 text-sm">
-            11 залов, шедевры коллекции и искусственный интеллект, который расскажет историю каждого
-            экспоната.
+            {/* Число залов — из каталога, а не константой: заказчик просил «10 залов»,
+                и после чистки каталога на бэке (лестница, служебные №99/№100) счёт
+                сойдётся сам, без правки текста. */}
+            {allHalls?.length
+              ? `${allHalls.length} ${hallsWord(allHalls.length)}, шедевры коллекции`
+              : "Шедевры коллекции"}{" "}
+            и искусственный интеллект, который расскажет историю каждого экспоната.
           </p>
         </section>
 
@@ -148,9 +161,7 @@ function HomeContent() {
 
         {!expositionChosen && (
           <section data-tour="expositions" className="flex flex-col gap-3">
-            <h2 className="text-muted-foreground text-xs tracking-widest uppercase">
-              Экспозиции
-            </h2>
+            <h2 className="text-muted-foreground text-xs tracking-widest uppercase">Экспозиции</h2>
             <Link
               href="/?type=permanent"
               className="border-border hover:bg-muted group/exp flex items-center gap-3 border p-4 transition-colors"
@@ -159,9 +170,6 @@ function HomeContent() {
               <span className="min-w-0 flex-1">
                 <span className="font-display block text-base tracking-tight">
                   Основная экспозиция
-                </span>
-                <span className="text-muted-foreground mt-0.5 block text-xs">
-                  {permanentHalls.length} залов постоянной коллекции
                 </span>
               </span>
               <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0 -rotate-90" />
@@ -175,10 +183,6 @@ function HomeContent() {
                 <span className="font-display block text-base tracking-tight">
                   Временная выставка
                 </span>
-                <span className="text-muted-foreground mt-0.5 block text-xs">
-                  {temporaryHalls.length}{" "}
-                  {temporaryHalls.length === 1 ? "зал" : "залов"} временных выставок
-                </span>
               </span>
               <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0 -rotate-90" />
             </Link>
@@ -189,42 +193,24 @@ function HomeContent() {
         )}
 
         {expositionChosen && (
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <h2 className="text-muted-foreground text-[10px] tracking-widest uppercase">
-                {typeParam === "temporary" ? "Временная выставка" : "Основная экспозиция"}
-              </h2>
-              <Link href="/" className="text-muted-foreground hover:text-foreground text-xs">
-                ← сменить экспозицию
-              </Link>
+          <section className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h2 className="text-muted-foreground text-[10px] tracking-widest uppercase">
+                  {typeParam === "temporary" ? "Временная выставка" : "Основная экспозиция"}
+                </h2>
+                <Link href="/" className="text-muted-foreground hover:text-foreground text-xs">
+                  ← сменить экспозицию
+                </Link>
+              </div>
             </div>
-          </div>
 
-          {error && (
-            <p className="text-destructive text-sm">Не удалось загрузить залы: {String(error)}</p>
-          )}
-
-          <button
-            type="button"
-            onClick={() => setHallsSheetOpen(true)}
-            disabled={isLoading || !halls?.length}
-            className={cn(
-              "border-border bg-background hover:bg-muted flex items-center justify-between gap-3 border px-4 py-3 text-left transition-colors",
-              "disabled:cursor-not-allowed disabled:opacity-60",
+            {error && (
+              <p className="text-destructive text-sm">Не удалось загрузить залы: {String(error)}</p>
             )}
-          >
-            <span className="min-w-0 flex-1">
-              <span className="text-muted-foreground text-[10px] tracking-widest uppercase">
-                Зал
-              </span>
-              <span className="mt-0.5 block truncate text-sm">
-                {isLoading ? "Загружаем залы…" : `Выберите зал из ${halls?.length ?? 0}`}
-              </span>
-            </span>
-            <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
-          </button>
-        </section>
+
+            <HallList halls={halls} isLoading={isLoading} />
+          </section>
         )}
       </main>
 
@@ -247,7 +233,7 @@ function HomeContent() {
           <div className="mt-4 flex flex-col">
             {!searchQuery && (
               <p className="text-muted-foreground text-xs tracking-widest uppercase">
-                Начни вводить запрос
+                Начните вводить запрос
               </p>
             )}
             {searchQuery &&
@@ -293,50 +279,6 @@ function HomeContent() {
               ))}
           </div>
         </div>
-      </Sheet>
-
-      <Sheet
-        open={hallsSheetOpen}
-        onOpenChange={setHallsSheetOpen}
-        title="Залы экспозиции"
-        className="h-[85vh]"
-      >
-        <ul className="flex flex-col">
-          {halls?.map((hall) => (
-            <li key={hall.id}>
-              <Link
-                href={`/halls/${hall.id}`}
-                onClick={() => setHallsSheetOpen(false)}
-                className="hover:bg-muted border-border flex items-center gap-3 border-b px-4 py-3 transition-colors"
-              >
-                <div className="border-border relative h-14 w-20 shrink-0 overflow-hidden border">
-                  {hall.coverImageUrl && (
-                    <Image
-                      src={hall.coverImageUrl}
-                      alt={hall.name ?? `Зал № ${hall.hallNumber}`}
-                      width={200}
-                      height={140}
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-muted-foreground flex items-center gap-2 text-[10px] tracking-widest uppercase">
-                    Зал № {hall.hallNumber}
-                    {hall.isTemporary && (
-                      <span className="border-border border px-1.5 py-px normal-case tracking-normal">
-                        временная
-                      </span>
-                    )}
-                  </p>
-                  <p className="mt-0.5 truncate text-sm font-medium">
-                    {hall.name ?? `Зал № ${hall.hallNumber}`}
-                  </p>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
       </Sheet>
 
       {showTour && <CoachMarkTour steps={TOUR_STEPS} onDone={finishTour} />}

@@ -83,7 +83,7 @@ export function SiteFooter() {
 
         <div className="text-muted-foreground mt-6 space-y-1 text-xs leading-relaxed">
           <p>Шуваловский дворец, наб. реки Фонтанки, 21</p>
-          <p>Ежедневно с 10:00 до 20:45. Кассы — с 9:30 до 20:15.</p>
+          <p>Ежедневно с 10:00 до 21:00. Кассы — с 9:30 до 20:15.</p>
         </div>
       </div>
     </footer>

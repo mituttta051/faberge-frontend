@@ -120,7 +120,7 @@ export default function RecognizePage() {
               <AlertCircle className="text-muted-foreground mx-auto h-12 w-12" />
               <h1 className="font-display mt-4 text-2xl tracking-tight">Не распознали уверенно</h1>
               <p className="text-muted-foreground mt-2 text-sm">
-                Попробуй сделать снимок крупнее или с другого ракурса.
+                Попробуйте сделать снимок крупнее или с другого ракурса.
               </p>
             </div>
 
@@ -168,7 +168,7 @@ export default function RecognizePage() {
             <AlertCircle className="text-destructive h-12 w-12" />
             <h1 className="font-display text-2xl tracking-tight">Не удалось распознать</h1>
             <p className="text-muted-foreground max-w-xs text-sm">
-              Попробуй сделать ещё одно фото или вернись к карте, чтобы выбрать экспонат вручную.
+              Попробуйте сделать ещё одно фото или выберите экспонат вручную в списке залов.
             </p>
             <div className="mt-2 flex w-full max-w-xs flex-col gap-2">
               <Button fullWidth onClick={handleRetry}>

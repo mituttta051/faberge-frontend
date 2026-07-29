@@ -156,7 +156,7 @@ function ChatContent() {
           useChatStore.getState().addMessage({
             id: uid("err"),
             role: "assistant",
-            content: "Не получилось ответить. Попробуй ещё раз.",
+            content: "Не получилось ответить. Попробуйте ещё раз.",
             createdAt: new Date().toISOString(),
           });
         },
@@ -198,7 +198,7 @@ function ChatContent() {
           id: uid("msg"),
           role: "assistant",
           content:
-            "Не удалось уверенно распознать экспонат на фото. Попробуй снять крупнее или с другого ракурса.",
+            "Не удалось уверенно распознать экспонат на фото. Попробуйте снять крупнее или с другого ракурса.",
           createdAt: new Date().toISOString(),
           suggestions: names.length > 0 ? names : undefined,
         });
@@ -207,7 +207,7 @@ function ChatContent() {
       useChatStore.getState().addMessage({
         id: uid("err"),
         role: "assistant",
-        content: "Не получилось обработать фото. Попробуй ещё раз.",
+        content: "Не получилось обработать фото. Попробуйте ещё раз.",
         createdAt: new Date().toISOString(),
       });
     }
@@ -235,7 +235,7 @@ function ChatContent() {
     <div className="border-border bg-muted/30 flex items-center gap-2 border px-3 py-2 text-xs">
       <Sparkles className="text-accent h-3.5 w-3.5 shrink-0" />
       <span className="text-muted-foreground">
-        Спрашиваешь о <strong className="text-foreground font-medium">{headerContext.label}</strong>
+        Спрашиваете о <strong className="text-foreground font-medium">{headerContext.label}</strong>
         {headerContext.hint && ` · ${headerContext.hint}`}
       </span>
     </div>
@@ -244,7 +244,7 @@ function ChatContent() {
       <Sparkles className="text-accent mx-auto h-7 w-7" />
       <h1 className="font-display mt-3 text-xl tracking-tight">Чат с AI-гидом</h1>
       <p className="text-muted-foreground mt-2 text-sm">
-        Спроси что угодно о коллекции или пришли фото экспоната — я подскажу, что это.
+        Спросите что угодно о коллекции или пришлите фото экспоната — я подскажу, что это.
       </p>
     </div>
   ) : null;

@@ -51,6 +51,7 @@ interface WireShowcaseBrief {
 
 interface WireExhibitSummary {
   id: number;
+  exhibit_number?: string | null;
   label_slug?: string | null;
   name: string;
   year_created?: number | null;
@@ -63,6 +64,7 @@ interface WireExhibitSummary {
 
 interface WireExhibit {
   id: number;
+  exhibit_number?: string | null;
   label_slug?: string | null;
   name: string;
   year_created?: number | null;
@@ -171,6 +173,7 @@ function mapShowcase(s: WireShowcase): Showcase {
 function mapExhibitSummary(e: WireExhibitSummary): Exhibit {
   return {
     id: e.id,
+    exhibitNumber: e.exhibit_number ?? undefined,
     labelSlug: e.label_slug ?? undefined,
     name: e.name,
     yearCreated: e.year_created ?? undefined,
@@ -185,6 +188,7 @@ function mapExhibitSummary(e: WireExhibitSummary): Exhibit {
 function mapExhibit(e: WireExhibit): Exhibit {
   return {
     id: e.id,
+    exhibitNumber: e.exhibit_number ?? undefined,
     labelSlug: e.label_slug ?? undefined,
     name: e.name,
     yearCreated: e.year_created ?? undefined,
