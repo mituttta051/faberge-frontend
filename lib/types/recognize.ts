@@ -5,6 +5,10 @@ export interface RecognitionCandidate {
   labelSlug: string;
   name?: string;
   confidence: number;
+  /** id карточки экспоната — для перехода на /exhibits/[id] (E19). */
+  exhibitId?: number;
+  /** Миниатюра кандидата (= exhibits.image_url) (E19). */
+  thumbnailUrl?: string;
 }
 
 /** Результат распознавания фото от YOLO (POST /recognition). */

@@ -20,7 +20,7 @@ import { getExhibit, getExhibitBySlug } from "@/lib/api/endpoints";
 import { useChatStore } from "@/lib/store/chat-store";
 import { useSafeBack } from "@/lib/hooks/use-safe-back";
 import { RelatedRecommendations } from "@/components/chat/related-recommendations";
-import type { ChatContext, ChatExhibitCard, Exhibit } from "@/lib/types";
+import type { ChatContext, ChatExhibitCard, ChatExhibitRef, Exhibit } from "@/lib/types";
 
 /** Подсказки для общего чата (без контекста экспоната/зала). */
 const DEFAULT_PROMPTS = [
@@ -150,6 +150,9 @@ function ChatContent() {
             content: res.answer,
             createdAt: new Date().toISOString(),
             suggestions: res.suggestedQuestions,
+            referencedExhibits: res.referencedExhibits,
+            referencedHalls: res.referencedHalls,
+            location: res.location,
           });
         },
         onError: () => {
@@ -193,13 +196,24 @@ function ChatContent() {
           exhibit: toPlaque(ex),
         });
       } else {
-        const names = (res.candidates ?? []).map((c) => c.name).filter((n): n is string => !!n);
+        // E19 — топ-3 кандидата: у кого есть карточка, показываем плашкой с фото,
+        // остальных (без exhibitId) оставляем подсказками-именами для дозапроса.
+        const candidates = res.candidates ?? [];
+        const refs: ChatExhibitRef[] = candidates
+          .filter((c): c is typeof c & { exhibitId: number } => c.exhibitId !== undefined)
+          .map((c) => ({ id: c.exhibitId, name: c.name ?? c.labelSlug, thumbnailUrl: c.thumbnailUrl }));
+        const names = candidates
+          .filter((c) => c.exhibitId === undefined)
+          .map((c) => c.name)
+          .filter((n): n is string => !!n);
         useChatStore.getState().addMessage({
           id: uid("msg"),
           role: "assistant",
           content:
             "Не удалось уверенно распознать экспонат на фото. Попробуй снять крупнее или с другого ракурса.",
           createdAt: new Date().toISOString(),
+          referencedExhibits: refs.length > 0 ? refs : undefined,
+          referencedExhibitsLabel: "Возможно, это",
           suggestions: names.length > 0 ? names : undefined,
         });
       }

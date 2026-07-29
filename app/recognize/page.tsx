@@ -133,13 +133,27 @@ export default function RecognizePage() {
                   {candidates.map((c) => (
                     <li key={c.labelSlug}>
                       <Link
-                        href={`/chat?label=${c.labelSlug}`}
-                        className="border-border hover:bg-muted block border px-3 py-2 text-sm"
+                        href={c.exhibitId ? `/exhibits/${c.exhibitId}` : `/chat?label=${c.labelSlug}`}
+                        className="group/cand border-border hover:border-foreground/40 flex items-stretch gap-3 border transition-colors"
                       >
-                        <span>{c.name ?? c.labelSlug}</span>
-                        <span className="text-muted-foreground ml-2 text-xs">
-                          {Math.round(c.confidence * 100)}%
-                        </span>
+                        {c.thumbnailUrl ? (
+                          <div className="border-border relative aspect-square w-16 shrink-0 overflow-hidden border-r">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={c.thumbnailUrl}
+                              alt=""
+                              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover/cand:scale-105"
+                            />
+                          </div>
+                        ) : null}
+                        <div className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2">
+                          <span className="group-hover/cand:text-accent min-w-0 flex-1 text-sm leading-snug transition-colors">
+                            {c.name ?? c.labelSlug}
+                          </span>
+                          <span className="text-muted-foreground shrink-0 text-xs">
+                            {Math.round(c.confidence * 100)}%
+                          </span>
+                        </div>
                       </Link>
                     </li>
                   ))}

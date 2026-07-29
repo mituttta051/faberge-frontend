@@ -9,6 +9,9 @@ const NETWORK_DELAY_MS = 300;
 /** In-memory история диалога по session_id (живёт в рамках вкладки). */
 const chatHistory = new Map<string, { role: "user" | "assistant"; content: string }[]>();
 
+/** Счётчик распознаваний: каждый 2-й вызов имитирует неуверенный ответ с топ-3 (E19). */
+let recognitionCount = 0;
+
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -68,6 +71,31 @@ function exhibitSummaryWire(e: MockExhibit) {
     thumbnail_url: e.photoUrl ?? null,
     hall_id: e.hallId,
     showcase_id: e.showcaseId,
+  };
+}
+
+/** Плашка-ссылка на карточку в ответе гида (C23). */
+function referencedExhibitWire(e: MockExhibit) {
+  const hall = halls.find((h) => h.id === e.hallId);
+  const showcase = showcases.find((s) => s.id === e.showcaseId);
+  return {
+    id: e.id,
+    name: e.name,
+    exhibit_number: null,
+    thumbnail_url: e.photoUrl ?? null,
+    hall_number: hall?.hallNumber ?? null,
+    showcase_number: showcase?.showcaseNumber ?? null,
+  };
+}
+
+/** Навигационная подсказка «зал + витрина» (C24). */
+function guideLocationWire(e: MockExhibit) {
+  const hall = halls.find((h) => h.id === e.hallId);
+  const showcase = showcases.find((s) => s.id === e.showcaseId);
+  return {
+    hall_number: hall?.hallNumber ?? null,
+    hall_name: hall?.name ?? null,
+    showcase_number: showcase?.showcaseNumber ?? null,
   };
 }
 
@@ -406,6 +434,26 @@ export const handlers = [
 
   http.post("*/recognition", async () => {
     await delay(1200);
+    recognitionCount += 1;
+    // Каждый 2-й вызов — неуверенное распознавание с топ-3 кандидатами (E19).
+    if (recognitionCount % 2 === 0) {
+      const picks = [...exhibits].sort(() => Math.random() - 0.5).slice(0, 3);
+      return HttpResponse.json({
+        recognized: false,
+        label_slug: null,
+        confidence: 0.4 + Math.random() * 0.15,
+        exhibit: null,
+        candidates: picks.map((e, i) => ({
+          label_slug: e.labelSlug,
+          name: e.name,
+          confidence: Math.round((0.55 - i * 0.08) * 100) / 100,
+          exhibit_id: e.id,
+          thumbnail_url: e.photoUrl ?? null,
+        })),
+        request_id: crypto.randomUUID(),
+        processing_ms: 300 + Math.floor(Math.random() * 200),
+      });
+    }
     const exhibit = pickRandom(exhibits);
     const confidence = 0.85 + Math.random() * 0.14;
     return HttpResponse.json({
@@ -474,11 +522,31 @@ export const handlers = [
         ? exhibits.find((e) => e.labelSlug === body.context!.label_slug)
         : undefined);
 
+    const msg = (body.message ?? "").toLowerCase();
+    // Зеркалит backend guide_intel.is_hall_listing (см. таску BE по расширению паттернов).
+    const wantsHallList = /как(ие|их)?\s+зал|список\s+зал|сколько\s+зал|перечисли/.test(msg);
+    const isNavigational = /как найти|где нахо|в каком зал|как пройти|где посмотреть/.test(msg);
+
     let answer: string;
     let suggestions: string[];
-    if (exhibit) {
+    // Поля контракта гида (C23/C24/C25) — фронт рисует плашки/подсказки.
+    let referencedExhibits: ReturnType<typeof referencedExhibitWire>[] = [];
+    let referencedHalls: ReturnType<typeof hallBriefWire>[] = [];
+    let location: ReturnType<typeof guideLocationWire> | null = null;
+
+    if (wantsHallList) {
+      answer = `В музее ${halls.length} залов: ${halls.map((h) => `№${h.hallNumber} «${h.name}»`).join("; ")}.`;
+      suggestions = ["С чего начать осмотр?", "Где императорские яйца?"];
+      referencedHalls = halls.map(hallBriefWire);
+    } else if (exhibit) {
       answer = `Об экспонате «${exhibit.name}»: ${exhibit.rawHistory ?? exhibit.shortDescription}`;
       suggestions = makeSuggestions(exhibit.name);
+      // Похожие экспонаты того же зала — плашки-ссылки в ответе (C23).
+      referencedExhibits = exhibits
+        .filter((e) => e.hallId === exhibit.hallId)
+        .slice(0, 3)
+        .map(referencedExhibitWire);
+      if (isNavigational) location = guideLocationWire(exhibit);
     } else if (hall) {
       answer = `${hall.description ?? hall.shortDescription}`;
       suggestions = [
@@ -505,6 +573,9 @@ export const handlers = [
             hall_id: body.context.hall_id ?? null,
           }
         : null,
+      referenced_exhibits: referencedExhibits,
+      referenced_halls: referencedHalls,
+      location,
     });
   }),
 
