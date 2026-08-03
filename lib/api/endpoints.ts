@@ -63,6 +63,8 @@ interface WireExhibitSummary {
   thumbnail_url?: string | null;
   hall_id?: number | null;
   showcase_id?: number | null;
+  /** Номер витрины прямо в списке (null — экспонат вне витрин). */
+  showcase_number?: number | null;
   is_temporary?: boolean | null;
 }
 
@@ -212,6 +214,7 @@ function mapExhibitSummary(e: WireExhibitSummary): Exhibit {
     photoUrl: e.thumbnail_url ?? undefined,
     hallId: e.hall_id ?? undefined,
     showcaseId: e.showcase_id ?? undefined,
+    showcaseNumber: e.showcase_number ?? undefined,
     isTemporary: e.is_temporary ?? undefined,
   };
 }

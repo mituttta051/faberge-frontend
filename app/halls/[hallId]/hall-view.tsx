@@ -19,12 +19,6 @@ export function HallView({ hallId }: { hallId: number }) {
   useTrackView("hall_view", hall?.id);
   const { data: showcases } = useHallShowcases(hallId);
   const { data: exhibits } = useHallExhibits(hallId);
-  // Джойн: у summary-экспоната есть showcaseId, а showcase_number приходит только у витрины,
-  // поэтому строим Map на клиенте — обе выборки уже загружены.
-  const showcaseNumberById = new Map<number, number>();
-  showcases?.forEach((s) => {
-    if (s.showcaseNumber != null) showcaseNumberById.set(s.id, s.showcaseNumber);
-  });
 
   return (
     <Screen>
@@ -85,7 +79,9 @@ export function HallView({ hallId }: { hallId: number }) {
               </h2>
               <ul className="mt-3 flex flex-col gap-1">
                 {exhibits?.map((e) => {
-                  const num = e.showcaseId ? showcaseNumberById.get(e.showcaseId) : undefined;
+                  // Номер витрины приходит прямо в списке — джойн с выборкой
+                  // витрин здесь больше не нужен.
+                  const num = e.showcaseNumber;
                   return (
                     <li key={e.id}>
                       <Link

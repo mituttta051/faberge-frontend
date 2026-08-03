@@ -72,6 +72,9 @@ function exhibitSummaryWire(e: MockExhibit) {
     thumbnail_url: e.photoUrl ?? null,
     hall_id: e.hallId,
     showcase_id: e.showcaseId,
+    // Как на бэкенде с 29.07.2026: номер витрины есть прямо в списке, чтобы
+    // страница зала собиралась без второго запроса.
+    showcase_number: showcases.find((s) => s.id === e.showcaseId)?.showcaseNumber ?? null,
   };
 }
 
