@@ -23,7 +23,9 @@ import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { ShowcaseForm } from "@/components/admin/showcase-form";
 
 export default function ShowcasesAdminPage() {
-  const { data: halls = [] } = useHalls();
+  // Со служебными: витрина может лежать в служебном зале, и без него строка
+  // списка осталась бы без заголовка группы, а селект формы — без варианта.
+  const { data: halls = [] } = useHalls({ includeService: true });
   const { data: showcases = [], isLoading } = useAllShowcases();
   const createMut = useCreateShowcase();
   const updateMut = useUpdateShowcase();

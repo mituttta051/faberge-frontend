@@ -15,6 +15,11 @@ export interface HallInput {
   name?: string;
   description?: string;
   coverImageUrl?: string;
+  /**
+   * Служебная запись (Парадная лестница и т.п.): зал остаётся в каталоге и в
+   * админке, но пропадает из публичной выдачи, с карты и из ответов гида.
+   */
+  isService?: boolean;
 }
 
 /** Данные формы витрины. */

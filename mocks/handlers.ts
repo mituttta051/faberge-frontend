@@ -38,6 +38,7 @@ function hallWire(h: MockHall) {
     name: h.name,
     description: h.description ?? h.shortDescription,
     cover_image_url: h.coverImageUrl ?? null,
+    is_service: h.isService ?? false,
     showcase_count: showcases.filter((s) => s.hallId === h.id).length,
     exhibit_count: exhibits.filter((e) => e.hallId === h.id).length,
   };
@@ -141,14 +142,15 @@ function nextId(items: { id: number }[]): number {
 }
 
 interface WireHallBody {
-  hall_number?: number;
+  hall_number?: number | null;
   name?: string | null;
   description?: string | null;
   cover_image_url?: string | null;
+  is_service?: boolean | null;
 }
 interface WireShowcaseBody {
   hall_id?: number;
-  showcase_number?: number;
+  showcase_number?: number | null;
   name?: string | null;
 }
 interface WireExhibitBody {
@@ -179,7 +181,11 @@ export const handlers = [
 
   http.get("*/halls", async ({ request }) => {
     await delay(NETWORK_DELAY_MS);
-    return HttpResponse.json(paged(halls.map(hallWire), new URL(request.url)));
+    const url = new URL(request.url);
+    // Как на бэкенде: служебные записи скрыты, пока их не попросят явно.
+    const includeService = url.searchParams.get("include_service") === "true";
+    const list = halls.filter((h) => includeService || !h.isService);
+    return HttpResponse.json(paged(list.map(hallWire), url));
   }),
 
   http.get("*/halls/:id", async ({ params }) => {
@@ -264,11 +270,14 @@ export const handlers = [
     const body = (await request.json().catch(() => ({}))) as WireHallBody;
     const hall: MockHall = {
       id: nextId(halls),
-      hallNumber: body.hall_number ?? nextId(halls),
+      // Явный null — зал без номера: автонумерация здесь сломала бы проверку
+      // подписей «Зал № …» для «Вне постоянной экспозиции».
+      hallNumber: body.hall_number ?? undefined,
       name: body.name ?? "",
       shortDescription: body.description ?? "",
       description: body.description ?? undefined,
       coverImageUrl: body.cover_image_url ?? undefined,
+      isService: body.is_service ?? false,
     };
     halls.push(hall);
     return HttpResponse.json(hallWire(hall), { status: 201 });
@@ -279,7 +288,8 @@ export const handlers = [
     const hall = halls.find((h) => h.id === Number(params.id));
     if (!hall) return HttpResponse.json({ detail: "Зал не найден." }, { status: 404 });
     const body = (await request.json().catch(() => ({}))) as WireHallBody;
-    if (body.hall_number !== undefined) hall.hallNumber = body.hall_number;
+    if (body.hall_number !== undefined) hall.hallNumber = body.hall_number ?? undefined;
+    if (body.is_service !== undefined) hall.isService = body.is_service ?? false;
     if (body.name !== undefined) hall.name = body.name ?? "";
     if (body.description !== undefined) {
       hall.description = body.description ?? undefined;
@@ -318,7 +328,8 @@ export const handlers = [
     const showcase = {
       id: nextId(showcases),
       hallId: body.hall_id ?? 0,
-      showcaseNumber: body.showcase_number ?? nextId(showcases),
+      // Пустой номер — группа «не в витринах», а не повод выдать автономер.
+      showcaseNumber: body.showcase_number ?? undefined,
       name: body.name ?? "",
     };
     showcases.push(showcase);
@@ -331,7 +342,10 @@ export const handlers = [
     if (!showcase) return HttpResponse.json({ detail: "Витрина не найдена." }, { status: 404 });
     const body = (await request.json().catch(() => ({}))) as WireShowcaseBody;
     if (body.hall_id !== undefined) showcase.hallId = body.hall_id;
-    if (body.showcase_number !== undefined) showcase.showcaseNumber = body.showcase_number;
+    // Явный null — витрина становится группой «не в витринах».
+    if (body.showcase_number !== undefined) {
+      showcase.showcaseNumber = body.showcase_number ?? undefined;
+    }
     if (body.name !== undefined) showcase.name = body.name ?? "";
     return HttpResponse.json(showcaseWire(showcase));
   }),

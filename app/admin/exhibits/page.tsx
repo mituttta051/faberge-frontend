@@ -23,7 +23,8 @@ import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { ExhibitForm } from "@/components/admin/exhibit-form";
 
 export default function ExhibitsAdminPage() {
-  const { data: halls = [] } = useHalls();
+  // Со служебными: иначе экспонат из служебного зала показывался бы как «Без зала».
+  const { data: halls = [] } = useHalls({ includeService: true });
   const { data: showcases = [] } = useAllShowcases();
   const { data: exhibits = [], isLoading } = useAllExhibits();
   const createMut = useCreateExhibit();

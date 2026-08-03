@@ -22,6 +22,7 @@ interface WireHall {
   description?: string | null;
   cover_image_url?: string | null;
   is_temporary?: boolean | null;
+  is_service?: boolean | null;
   sort_order?: number | null;
   showcase_count?: number | null;
   exhibit_count?: number | null;
@@ -84,6 +85,7 @@ function mapHall(h: WireHall): Hall {
     description: h.description ?? undefined,
     coverImageUrl: h.cover_image_url ?? undefined,
     isTemporary: h.is_temporary ?? undefined,
+    isService: h.is_service ?? undefined,
     sortOrder: h.sort_order ?? undefined,
     showcaseCount: h.showcase_count ?? undefined,
     exhibitCount: h.exhibit_count ?? undefined,
@@ -123,6 +125,10 @@ function hallToWire(input: HallInput) {
     name: input.name ?? null,
     description: input.description ?? null,
     cover_image_url: input.coverImageUrl ?? null,
+    // Форма всегда присылает актуальное состояние переключателя, поэтому шлём
+    // булево, а не пропускаем поле: иначе снять отметку «служебный» было бы
+    // нечем — PATCH меняет только переданные поля.
+    is_service: input.isService ?? false,
   };
 }
 

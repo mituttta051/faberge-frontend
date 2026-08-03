@@ -13,6 +13,7 @@ import {
 } from "@/lib/api/admin-hooks";
 import { errorMessage } from "@/lib/utils";
 import { hallLabel } from "@/lib/admin/labels";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { DataTable, type Column } from "@/components/admin/data-table";
@@ -21,7 +22,18 @@ import { HallForm } from "@/components/admin/hall-form";
 
 const columns: Column<Hall>[] = [
   // nowrap: иначе «Описание» съедает ширину и название зала ломается на 3 строки.
-  { header: "Зал", className: "whitespace-nowrap", cell: (h) => hallLabel(h) },
+  {
+    header: "Зал",
+    className: "whitespace-nowrap",
+    cell: (h) => (
+      <span className="flex items-center gap-2">
+        {hallLabel(h)}
+        {/* Служебный зал виден только здесь — без пометки не отличить от обычного,
+            и админ не поймёт, почему зала нет в приложении. */}
+        {h.isService && <Badge>Служебный</Badge>}
+      </span>
+    ),
+  },
   {
     header: "Витрин",
     hideOnMobile: true,
@@ -42,7 +54,9 @@ const columns: Column<Hall>[] = [
 ];
 
 export default function HallsAdminPage() {
-  const { data, isLoading } = useHalls();
+  // includeService: служебные залы не отдаются публично, но управлять ими нужно
+  // именно отсюда — иначе запись становится недоступной после включения флага.
+  const { data, isLoading } = useHalls({ includeService: true });
   // Не `data = []` в деструктуризации: литерал создавал бы новый массив на
   // каждом рендере, эффект синхронизации порядка ниже видел бы «новые» залы
   // и уходил в бесконечный цикл, пока запрос не выполнен.

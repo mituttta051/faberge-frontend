@@ -278,9 +278,16 @@ function mapGuideLocation(l: WireGuideLocation): ChatLocation {
 // Каталог
 // ============================
 
-export async function getHalls(opts: { isTemporary?: boolean } = {}): Promise<Hall[]> {
-  const query =
-    opts.isTemporary !== undefined ? { is_temporary: String(opts.isTemporary) } : undefined;
+export async function getHalls(
+  opts: { isTemporary?: boolean; includeService?: boolean } = {},
+): Promise<Hall[]> {
+  const query = {
+    is_temporary: opts.isTemporary !== undefined ? String(opts.isTemporary) : undefined,
+    // Служебные записи каталога (Парадная лестница) бэкенд из `GET /halls`
+    // исключает — посетителю их видеть незачем. Админке наоборот: без флага
+    // служебный зал пропадает и из панели, и управлять им становится нечем.
+    include_service: opts.includeService ? "true" : undefined,
+  };
   return (await fetchAllPaged<WireHall>("/halls", { query })).map(mapHall);
 }
 

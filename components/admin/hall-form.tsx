@@ -26,6 +26,7 @@ export function HallForm({ initial, hallId, onSubmit, onCancel, loading, error }
   const [name, setName] = React.useState(initial?.name ?? "");
   const [description, setDescription] = React.useState(initial?.description ?? "");
   const [coverImageUrl, setCoverImageUrl] = React.useState(initial?.coverImageUrl ?? "");
+  const [isService, setIsService] = React.useState(initial?.isService ?? false);
   // Отложенный файл обложки для режима создания (зал ещё без id).
   const [pendingCover, setPendingCover] = React.useState<File | null>(null);
   const [pendingPreview, setPendingPreview] = React.useState<string | null>(null);
@@ -63,6 +64,7 @@ export function HallForm({ initial, hallId, onSubmit, onCancel, loading, error }
         name: name.trim() || undefined,
         description: description.trim() || undefined,
         coverImageUrl: coverImageUrl.trim() || undefined,
+        isService,
       },
       pendingCover ?? undefined,
     );
@@ -100,6 +102,22 @@ export function HallForm({ initial, hallId, onSubmit, onCancel, loading, error }
           placeholder="https://…"
         />
       </Field>
+
+      <label className="flex items-start gap-2">
+        <input
+          type="checkbox"
+          className="mt-0.5"
+          checked={isService}
+          onChange={(e) => setIsService(e.target.checked)}
+        />
+        <span className="flex flex-col gap-0.5">
+          <span className="text-xs">Служебная запись</span>
+          <span className="text-muted-foreground text-[11px]">
+            Зал останется в панели, но исчезнет из каталога для посетителей и из ответов AI-гида.
+            Так убирают из экспозиции Парадную лестницу, не удаляя её описание.
+          </span>
+        </span>
+      </label>
 
       <div className="border-border flex flex-col gap-2 border-t pt-3">
         <span className="text-muted-foreground text-xs">Обложка</span>
