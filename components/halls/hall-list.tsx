@@ -7,6 +7,7 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHallExhibits, useHallShowcases } from "@/lib/api/hooks";
+import { byShowcaseNumber, hallNumberCaption, hallTitle, showcaseTitle } from "@/lib/labels";
 import type { Exhibit, Hall, Showcase } from "@/lib/types";
 
 /**
@@ -46,7 +47,8 @@ export function HallList({ halls, isLoading }: { halls?: Hall[]; isLoading?: boo
 
 function HallRow({ hall }: { hall: Hall }) {
   const [open, setOpen] = useState(false);
-  const title = hall.name ?? `Зал № ${hall.hallNumber}`;
+  const title = hallTitle(hall);
+  const numberCaption = hallNumberCaption(hall);
   // Витрины и экспонаты тянем только у раскрытого зала — иначе первый экран
   // отправил бы по два запроса на каждый из десяти залов.
   const { data: showcases, isLoading: showcasesLoading } = useHallShowcases(
@@ -76,14 +78,16 @@ function HallRow({ hall }: { hall: Hall }) {
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-muted-foreground flex items-center gap-2 text-[10px] tracking-widest uppercase">
-            Зал № {hall.hallNumber}
-            {hall.isTemporary && (
-              <span className="border-border border px-1.5 py-px tracking-normal normal-case">
-                временная
-              </span>
-            )}
-          </p>
+          {(numberCaption || hall.isTemporary) && (
+            <p className="text-muted-foreground flex items-center gap-2 text-[10px] tracking-widest uppercase">
+              {numberCaption}
+              {hall.isTemporary && (
+                <span className="border-border border px-1.5 py-px tracking-normal normal-case">
+                  временная
+                </span>
+              )}
+            </p>
+          )}
           <p className="mt-0.5 truncate text-sm font-medium">{title}</p>
         </div>
         <ChevronDown
@@ -139,6 +143,7 @@ function HallShowcases({ showcases, exhibits }: { showcases?: Showcase[]; exhibi
   const known = new Set((showcases ?? []).map((s) => s.id));
   // Экспонаты вне витрин — в путеводителе это отдельная группа с пустым квадратом.
   const loose = items.filter((e) => e.showcaseId === undefined || !known.has(e.showcaseId));
+  const hasUnnumberedShowcase = (showcases ?? []).some((s) => s.showcaseNumber == null);
 
   if (!showcases?.length && !items.length) {
     return <p className="text-muted-foreground text-xs">Состав зала пока не заполнен.</p>;
@@ -146,15 +151,19 @@ function HallShowcases({ showcases, exhibits }: { showcases?: Showcase[]; exhibi
 
   return (
     <div className="flex flex-col gap-3">
-      {showcases?.map((s) => (
+      {[...(showcases ?? [])].sort(byShowcaseNumber).map((s) => (
         <ShowcaseGroup
           key={s.id}
-          title={`Витрина № ${s.showcaseNumber}`}
+          title={showcaseTitle(s)}
           subtitle={s.name}
           items={items.filter((e) => e.showcaseId === s.id)}
         />
       ))}
-      {loose.length > 0 && <ShowcaseGroup title="Не в витринах" items={loose} />}
+      {/* Экспонаты, не привязанные ни к одной витрине. Когда у зала есть витрина
+          без номера, «не в витринах» уже пришло от бэкенда — второй раз не рисуем. */}
+      {loose.length > 0 && !hasUnnumberedShowcase && (
+        <ShowcaseGroup title="Не в витринах" items={loose} />
+      )}
     </div>
   );
 }
@@ -172,7 +181,11 @@ function ShowcaseGroup({
     <div className="border-border border-l pl-3">
       <p className="text-muted-foreground text-[10px] tracking-widest uppercase">
         {title}
-        {subtitle && <span className="tracking-normal normal-case"> · {subtitle}</span>}
+        {/* У витрины без номера название часто совпадает с заголовком группы —
+            «Не в витринах · Не в витринах» читается как ошибка. */}
+        {subtitle && subtitle !== title && (
+          <span className="tracking-normal normal-case"> · {subtitle}</span>
+        )}
       </p>
       {items.length === 0 ? (
         <p className="text-muted-foreground mt-1 text-xs">Экспонаты не заполнены.</p>

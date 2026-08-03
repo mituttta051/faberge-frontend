@@ -17,11 +17,12 @@ import { fetchAllPaged, request, setAdminToken } from "./client";
 
 interface WireHall {
   id: number;
-  hall_number: number;
+  hall_number?: number | null;
   name?: string | null;
   description?: string | null;
   cover_image_url?: string | null;
   is_temporary?: boolean | null;
+  is_service?: boolean | null;
   sort_order?: number | null;
   showcase_count?: number | null;
   exhibit_count?: number | null;
@@ -30,7 +31,7 @@ interface WireHall {
 interface WireShowcase {
   id: number;
   hall_id: number;
-  showcase_number: number;
+  showcase_number?: number | null;
   name?: string | null;
   exhibit_count?: number | null;
 }
@@ -79,11 +80,12 @@ function mapImage(i: WireImage): ExhibitImage {
 function mapHall(h: WireHall): Hall {
   return {
     id: h.id,
-    hallNumber: h.hall_number,
+    hallNumber: h.hall_number ?? undefined,
     name: h.name ?? undefined,
     description: h.description ?? undefined,
     coverImageUrl: h.cover_image_url ?? undefined,
     isTemporary: h.is_temporary ?? undefined,
+    isService: h.is_service ?? undefined,
     sortOrder: h.sort_order ?? undefined,
     showcaseCount: h.showcase_count ?? undefined,
     exhibitCount: h.exhibit_count ?? undefined,
@@ -94,7 +96,7 @@ function mapShowcase(s: WireShowcase): Showcase {
   return {
     id: s.id,
     hallId: s.hall_id,
-    showcaseNumber: s.showcase_number,
+    showcaseNumber: s.showcase_number ?? undefined,
     name: s.name ?? undefined,
     exhibitCount: s.exhibit_count ?? undefined,
   };
@@ -119,17 +121,21 @@ function mapAdminExhibit(e: WireAdminExhibit): AdminExhibit {
 // domain → wire (для записи)
 function hallToWire(input: HallInput) {
   return {
-    hall_number: input.hallNumber,
+    hall_number: input.hallNumber ?? null,
     name: input.name ?? null,
     description: input.description ?? null,
     cover_image_url: input.coverImageUrl ?? null,
+    // Форма всегда присылает актуальное состояние переключателя, поэтому шлём
+    // булево, а не пропускаем поле: иначе снять отметку «служебный» было бы
+    // нечем — PATCH меняет только переданные поля.
+    is_service: input.isService ?? false,
   };
 }
 
 function showcaseToWire(input: ShowcaseInput) {
   return {
     hall_id: input.hallId,
-    showcase_number: input.showcaseNumber,
+    showcase_number: input.showcaseNumber ?? null,
     name: input.name ?? null,
   };
 }
@@ -166,7 +172,9 @@ export async function getAllExhibits(): Promise<AdminExhibit[]> {
 // ============================
 
 export async function createHall(input: HallInput): Promise<Hall> {
-  return mapHall(await request<WireHall>("/admin/halls", { method: "POST", json: hallToWire(input) }));
+  return mapHall(
+    await request<WireHall>("/admin/halls", { method: "POST", json: hallToWire(input) }),
+  );
 }
 
 export async function updateHall(id: number, input: HallInput): Promise<Hall> {
@@ -175,7 +183,11 @@ export async function updateHall(id: number, input: HallInput): Promise<Hall> {
   );
 }
 
-// NB: на бэке DELETE /admin/halls/{id} пока нет — вернётся 404/405 (см. контракт).
+/**
+ * Удаляет зал. Непустой зал бэкенд удалять отказывается: если в нём есть
+ * витрины — 409 с текстом «Зал не пуст». Каскад включается `?force=true`,
+ * который мы намеренно не шлём, — см. диалог подтверждения в админке.
+ */
 export async function deleteHall(id: number): Promise<void> {
   await request<void>(`/admin/halls/${id}`, { method: "DELETE" });
 }
@@ -215,11 +227,17 @@ export async function uploadHallCover(hallId: number, file: File): Promise<Hall>
 
 export async function createShowcase(input: ShowcaseInput): Promise<Showcase> {
   return mapShowcase(
-    await request<WireShowcase>("/admin/showcases", { method: "POST", json: showcaseToWire(input) }),
+    await request<WireShowcase>("/admin/showcases", {
+      method: "POST",
+      json: showcaseToWire(input),
+    }),
   );
 }
 
-// NB: на бэке PATCH /admin/showcases/{id} пока нет — вернётся 404/405 (см. контракт).
+/**
+ * Частичное обновление витрины. Перенос в другой зал и смена номера учитывают
+ * уникальность пары (зал, номер) — при конфликте бэкенд отвечает 409.
+ */
 export async function updateShowcase(id: number, input: ShowcaseInput): Promise<Showcase> {
   return mapShowcase(
     await request<WireShowcase>(`/admin/showcases/${id}`, {
@@ -229,7 +247,7 @@ export async function updateShowcase(id: number, input: ShowcaseInput): Promise<
   );
 }
 
-// NB: на бэке DELETE /admin/showcases/{id} пока нет — вернётся 404/405 (см. контракт).
+/** Удаляет витрину. Непустую — только с `?force=true`, иначе 409. */
 export async function deleteShowcase(id: number): Promise<void> {
   await request<void>(`/admin/showcases/${id}`, { method: "DELETE" });
 }
@@ -240,7 +258,10 @@ export async function deleteShowcase(id: number): Promise<void> {
 
 export async function createExhibit(input: ExhibitInput): Promise<AdminExhibit> {
   return mapAdminExhibit(
-    await request<WireAdminExhibit>("/admin/exhibits", { method: "POST", json: exhibitToWire(input) }),
+    await request<WireAdminExhibit>("/admin/exhibits", {
+      method: "POST",
+      json: exhibitToWire(input),
+    }),
   );
 }
 

@@ -22,12 +22,13 @@ import { fetchAllPaged, request } from "./client";
 
 interface WireHall {
   id: number;
-  hall_number: number;
+  hall_number?: number | null;
   name?: string | null;
   description?: string | null;
   level?: number | null;
   cover_image_url?: string | null;
   is_temporary?: boolean | null;
+  is_service?: boolean | null;
   sort_order?: number | null;
   showcase_count?: number | null;
   exhibit_count?: number | null;
@@ -35,21 +36,21 @@ interface WireHall {
 
 interface WireHallBrief {
   id: number;
-  hall_number: number;
+  hall_number?: number | null;
   name?: string | null;
 }
 
 interface WireShowcase {
   id: number;
   hall_id: number;
-  showcase_number: number;
+  showcase_number?: number | null;
   name?: string | null;
   exhibit_count?: number | null;
 }
 
 interface WireShowcaseBrief {
   id: number;
-  showcase_number: number;
+  showcase_number?: number | null;
 }
 
 interface WireExhibitSummary {
@@ -62,6 +63,8 @@ interface WireExhibitSummary {
   thumbnail_url?: string | null;
   hall_id?: number | null;
   showcase_id?: number | null;
+  /** Номер витрины прямо в списке (null — экспонат вне витрин). */
+  showcase_number?: number | null;
   is_temporary?: boolean | null;
 }
 
@@ -137,7 +140,7 @@ interface WireReferencedExhibit {
 
 interface WireReferencedHall {
   id: number;
-  hall_number: number;
+  hall_number?: number | null;
   name?: string | null;
 }
 
@@ -177,7 +180,7 @@ interface WireSpeechResponse {
 function mapHall(h: WireHall): Hall {
   return {
     id: h.id,
-    hallNumber: h.hall_number,
+    hallNumber: h.hall_number ?? undefined,
     name: h.name ?? undefined,
     description: h.description ?? undefined,
     level: h.level ?? undefined,
@@ -185,6 +188,7 @@ function mapHall(h: WireHall): Hall {
     showcaseCount: h.showcase_count ?? undefined,
     exhibitCount: h.exhibit_count ?? undefined,
     isTemporary: h.is_temporary ?? undefined,
+    isService: h.is_service ?? undefined,
     sortOrder: h.sort_order ?? undefined,
   };
 }
@@ -193,7 +197,7 @@ function mapShowcase(s: WireShowcase): Showcase {
   return {
     id: s.id,
     hallId: s.hall_id,
-    showcaseNumber: s.showcase_number,
+    showcaseNumber: s.showcase_number ?? undefined,
     name: s.name ?? undefined,
     exhibitCount: s.exhibit_count ?? undefined,
   };
@@ -210,6 +214,7 @@ function mapExhibitSummary(e: WireExhibitSummary): Exhibit {
     photoUrl: e.thumbnail_url ?? undefined,
     hallId: e.hall_id ?? undefined,
     showcaseId: e.showcase_id ?? undefined,
+    showcaseNumber: e.showcase_number ?? undefined,
     isTemporary: e.is_temporary ?? undefined,
   };
 }
@@ -259,7 +264,7 @@ function mapReferencedExhibit(e: WireReferencedExhibit): ChatExhibitRef {
 function mapReferencedHall(h: WireReferencedHall): ChatHallRef {
   return {
     id: h.id,
-    hallNumber: h.hall_number,
+    hallNumber: h.hall_number ?? undefined,
     name: h.name ?? undefined,
   };
 }
@@ -276,9 +281,16 @@ function mapGuideLocation(l: WireGuideLocation): ChatLocation {
 // Каталог
 // ============================
 
-export async function getHalls(opts: { isTemporary?: boolean } = {}): Promise<Hall[]> {
-  const query =
-    opts.isTemporary !== undefined ? { is_temporary: String(opts.isTemporary) } : undefined;
+export async function getHalls(
+  opts: { isTemporary?: boolean; includeService?: boolean } = {},
+): Promise<Hall[]> {
+  const query = {
+    is_temporary: opts.isTemporary !== undefined ? String(opts.isTemporary) : undefined,
+    // Служебные записи каталога (Парадная лестница) бэкенд из `GET /halls`
+    // исключает — посетителю их видеть незачем. Админке наоборот: без флага
+    // служебный зал пропадает и из панели, и управлять им становится нечем.
+    include_service: opts.includeService ? "true" : undefined,
+  };
   return (await fetchAllPaged<WireHall>("/halls", { query })).map(mapHall);
 }
 
@@ -424,6 +436,9 @@ export async function chatWithGuide(input: ChatTurnInput): Promise<ChatTurnResul
     method: "POST",
     json: {
       session_id: input.sessionId,
+      // Пустой объект здесь — не то же самое, что отсутствие поля: `context: {}`
+      // бэкенд трактует как явный сброс контекста сессии, а пропущенное поле —
+      // как «оставь сохранённый». Схлопывать одно в другое нельзя.
       context: input.context
         ? {
             exhibit_id: input.context.exhibitId,

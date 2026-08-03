@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/admin-hooks";
 import { errorMessage } from "@/lib/utils";
 import { hallLabel, showcaseLabel } from "@/lib/admin/labels";
+import { byShowcaseNumber } from "@/lib/labels";
 import { groupByHall } from "@/lib/admin/grouping";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -22,7 +23,9 @@ import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { ShowcaseForm } from "@/components/admin/showcase-form";
 
 export default function ShowcasesAdminPage() {
-  const { data: halls = [] } = useHalls();
+  // Со служебными: витрина может лежать в служебном зале, и без него строка
+  // списка осталась бы без заголовка группы, а селект формы — без варианта.
+  const { data: halls = [] } = useHalls({ includeService: true });
   const { data: showcases = [], isLoading } = useAllShowcases();
   const createMut = useCreateShowcase();
   const updateMut = useUpdateShowcase();
@@ -33,13 +36,7 @@ export default function ShowcasesAdminPage() {
   const [deleting, setDeleting] = React.useState<Showcase | null>(null);
 
   const groups = React.useMemo(
-    () =>
-      groupByHall(
-        showcases,
-        halls,
-        (s) => s.hallId,
-        (a, b) => a.showcaseNumber - b.showcaseNumber,
-      ),
+    () => groupByHall(showcases, halls, (s) => s.hallId, byShowcaseNumber),
     [showcases, halls],
   );
 

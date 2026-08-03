@@ -21,8 +21,10 @@ export function ReferencedHalls({ items }: Props) {
               href={`/halls/${h.id}`}
               className="border-border hover:border-foreground/40 hover:text-accent bg-background block border px-2.5 py-1 text-xs transition-colors"
             >
-              <span className="text-muted-foreground">№{h.hallNumber}</span>
-              {h.name ? ` ${h.name}` : ""}
+              {h.hallNumber != null && (
+                <span className="text-muted-foreground">№{h.hallNumber}</span>
+              )}
+              {h.name ? (h.hallNumber != null ? ` ${h.name}` : h.name) : ""}
             </Link>
           </li>
         ))}

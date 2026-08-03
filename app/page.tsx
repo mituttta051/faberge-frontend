@@ -12,6 +12,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { useHalls, useSearchCatalog } from "@/lib/api/hooks";
 import { HallList } from "@/components/halls/hall-list";
+import { hallTitle } from "@/lib/labels";
 import { CoachMarkTour, type TourStep } from "@/components/tour/coach-mark-tour";
 import { SiteFooter } from "@/components/layout/site-footer";
 
@@ -96,6 +97,7 @@ function HomeContent() {
   };
 
   const { data: allHalls, isLoading, error } = useHalls();
+  const numberedHallCount = (allHalls ?? []).filter((h) => h.hallNumber != null).length;
   const permanentHalls = (allHalls ?? []).filter((h) => !h.isTemporary);
   const temporaryHalls = (allHalls ?? []).filter((h) => !!h.isTemporary);
   const halls =
@@ -130,11 +132,12 @@ function HomeContent() {
           <p className="text-muted-foreground text-xs tracking-widest uppercase">AI-гид</p>
           <h1 className="font-display mt-2 text-3xl tracking-tight">Знакомство с экспозицией</h1>
           <p className="text-muted-foreground mt-3 text-sm">
-            {/* Число залов — из каталога, а не константой: заказчик просил «10 залов»,
-                и после чистки каталога на бэке (лестница, служебные №99/№100) счёт
-                сойдётся сам, без правки текста. */}
-            {allHalls?.length
-              ? `${allHalls.length} ${hallsWord(allHalls.length)}, шедевры коллекции`
+            {/* Число залов — из каталога, а не константой. Считаем только залы с
+                номером: «Вне постоянной экспозиции» — группа для предметов вне
+                экспозиции, и AI-гид её тоже не считает. Иначе главная обещала бы
+                на один зал больше, чем называет гид. */}
+            {numberedHallCount
+              ? `${numberedHallCount} ${hallsWord(numberedHallCount)}, шедевры коллекции`
               : "Шедевры коллекции"}{" "}
             и искусственный интеллект, который расскажет историю каждого экспоната.
           </p>
@@ -253,9 +256,7 @@ function HomeContent() {
                   <span className="text-muted-foreground text-xs tracking-widest uppercase">
                     Зал
                   </span>
-                  <span className="min-w-0 flex-1 truncate">
-                    {h.name ?? `Зал № ${h.hallNumber}`}
-                  </span>
+                  <span className="min-w-0 flex-1 truncate">{hallTitle(h)}</span>
                   {h.isTemporary && (
                     <span className="border-border text-muted-foreground shrink-0 border px-1.5 py-px text-[10px] tracking-widest uppercase">
                       временная

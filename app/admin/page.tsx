@@ -6,7 +6,8 @@ import { useHalls } from "@/lib/api/hooks";
 import { useAllExhibits, useAllShowcases } from "@/lib/api/admin-hooks";
 
 export default function AdminOverviewPage() {
-  const halls = useHalls();
+  // Счётчик на плитке должен совпадать с числом строк в разделе «Залы».
+  const halls = useHalls({ includeService: true });
   const showcases = useAllShowcases();
   const exhibits = useAllExhibits();
 

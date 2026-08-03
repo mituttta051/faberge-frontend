@@ -14,14 +14,15 @@ const SEP = " · ";
 /** «Зал 5 · Синяя гостиная» — заголовки групп и опции селектов. */
 export function hallLabel(hall?: Hall | null): string {
   if (!hall) return "Без зала";
-  const base = `Зал ${hall.hallNumber}`;
+  const base = hall.hallNumber != null ? `Зал ${hall.hallNumber}` : "Зал без номера";
   return hall.name ? base + SEP + hall.name : base;
 }
 
 /** «Витрина 3 · Часы и галантерея» — строки списка витрин и опции селектов. */
 export function showcaseLabel(showcase?: Showcase | null): string {
   if (!showcase) return "Без витрины";
-  const base = `Витрина ${showcase.showcaseNumber}`;
+  const base =
+    showcase.showcaseNumber != null ? `Витрина ${showcase.showcaseNumber}` : "Не в витринах";
   return showcase.name ? base + SEP + showcase.name : base;
 }
 
@@ -31,7 +32,11 @@ export function showcaseLabel(showcase?: Showcase | null): string {
  */
 export function placementLabel(hall?: Hall | null, showcase?: Showcase | null): string {
   const parts: string[] = [];
-  if (hall) parts.push(`Зал ${hall.hallNumber}`);
-  if (showcase) parts.push(`Витрина ${showcase.showcaseNumber}`);
+  if (hall) parts.push(hall.hallNumber != null ? `Зал ${hall.hallNumber}` : "Зал без номера");
+  if (showcase) {
+    parts.push(
+      showcase.showcaseNumber != null ? `Витрина ${showcase.showcaseNumber}` : "Не в витринах",
+    );
+  }
   return parts.length > 0 ? parts.join(SEP) : "Не размещён";
 }

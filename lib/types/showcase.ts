@@ -2,8 +2,11 @@
 export interface Showcase {
   id: number;
   hallId: number;
-  /** Номер витрины в пределах зала */
-  showcaseNumber: number;
+  /**
+   * Номер витрины в пределах зала. Пустой номер — группа «не в витринах»
+   * (в путеводителе музея она отмечена пустым квадратом).
+   */
+  showcaseNumber?: number;
   /** Опциональное название (напр. «Часы и галантерея»). Может отсутствовать. */
   name?: string;
   exhibitCount?: number;

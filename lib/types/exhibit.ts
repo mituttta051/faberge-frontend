@@ -6,7 +6,11 @@ export interface Exhibit {
   showcaseId?: number;
   /** ID зала. У полной карточки приходит через `hall.id`, у summary — как `hall_id`. */
   hallId?: number;
-  /** Номер витрины (в пределах зала). Приходит только у detail (`showcase.showcase_number`). */
+  /**
+   * Номер витрины в пределах зала. Приходит и у карточки (`showcase.showcase_number`),
+   * и в списках (`showcase_number` в summary — с 29.07.2026). Пусто — экспонат
+   * стоит вне витрин.
+   */
   showcaseNumber?: number;
   /** Slug, который возвращает YOLO. Напр. 'faberge_egg_winter' */
   labelSlug?: string;

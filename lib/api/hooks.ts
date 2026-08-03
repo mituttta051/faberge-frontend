@@ -26,9 +26,13 @@ import {
 // Каталог
 // ============================
 
-export function useHalls(opts: { isTemporary?: boolean } = {}) {
+/**
+ * Каталог залов. `includeService` нужен только админке: публичная часть должна
+ * получать выдачу без служебных записей, поэтому режимы разведены и по кэшу.
+ */
+export function useHalls(opts: { isTemporary?: boolean; includeService?: boolean } = {}) {
   return useQuery({
-    queryKey: ["halls", opts.isTemporary ?? null],
+    queryKey: ["halls", opts.isTemporary ?? null, opts.includeService ?? false],
     queryFn: () => getHalls(opts),
   });
 }

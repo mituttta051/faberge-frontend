@@ -26,6 +26,7 @@ export function HallForm({ initial, hallId, onSubmit, onCancel, loading, error }
   const [name, setName] = React.useState(initial?.name ?? "");
   const [description, setDescription] = React.useState(initial?.description ?? "");
   const [coverImageUrl, setCoverImageUrl] = React.useState(initial?.coverImageUrl ?? "");
+  const [isService, setIsService] = React.useState(initial?.isService ?? false);
   // Отложенный файл обложки для режима создания (зал ещё без id).
   const [pendingCover, setPendingCover] = React.useState<File | null>(null);
   const [pendingPreview, setPendingPreview] = React.useState<string | null>(null);
@@ -59,10 +60,11 @@ export function HallForm({ initial, hallId, onSubmit, onCancel, loading, error }
     e.preventDefault();
     onSubmit(
       {
-        hallNumber: Number(hallNumber) || 0,
+        hallNumber: hallNumber.trim() === "" ? undefined : Number(hallNumber),
         name: name.trim() || undefined,
         description: description.trim() || undefined,
         coverImageUrl: coverImageUrl.trim() || undefined,
+        isService,
       },
       pendingCover ?? undefined,
     );
@@ -72,17 +74,23 @@ export function HallForm({ initial, hallId, onSubmit, onCancel, loading, error }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <Field label="Номер зала" required>
+      <Field
+        label="Номер зала"
+        hint="Пусто — зал без номера: не попадёт в нумерацию плана экспозиции."
+      >
         <Input
           type="number"
           inputMode="numeric"
           value={hallNumber}
           onChange={(e) => setHallNumber(e.target.value)}
-          required
         />
       </Field>
       <Field label="Название">
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Синяя гостиная" />
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Синяя гостиная"
+        />
       </Field>
       <Field label="Описание">
         <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
@@ -95,15 +103,42 @@ export function HallForm({ initial, hallId, onSubmit, onCancel, loading, error }
         />
       </Field>
 
+      <label className="flex items-start gap-2">
+        <input
+          type="checkbox"
+          className="mt-0.5"
+          checked={isService}
+          onChange={(e) => setIsService(e.target.checked)}
+        />
+        <span className="flex flex-col gap-0.5">
+          <span className="text-xs">Служебная запись</span>
+          <span className="text-muted-foreground text-[11px]">
+            Зал останется в панели, но исчезнет из каталога для посетителей и из ответов AI-гида.
+            Так убирают из экспозиции Парадную лестницу, не удаляя её описание.
+          </span>
+        </span>
+      </label>
+
       <div className="border-border flex flex-col gap-2 border-t pt-3">
         <span className="text-muted-foreground text-xs">Обложка</span>
         <div className="flex items-center gap-3">
           {previewUrl && (
             <div className="border-border relative h-16 w-24 shrink-0 border">
-              <Image src={previewUrl} alt="" fill sizes="96px" className="object-cover" unoptimized />
+              <Image
+                src={previewUrl}
+                alt=""
+                fill
+                sizes="96px"
+                className="object-cover"
+                unoptimized
+              />
             </div>
           )}
-          <ImageUpload onFile={handleCover} loading={uploadCover.isPending} label="Загрузить обложку" />
+          <ImageUpload
+            onFile={handleCover}
+            loading={uploadCover.isPending}
+            label="Загрузить обложку"
+          />
         </div>
         {pendingCover && (
           <span className="text-muted-foreground text-[11px]">

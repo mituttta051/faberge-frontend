@@ -10,16 +10,23 @@ import type { Exhibit } from "./exhibit";
 
 /** Данные формы зала. */
 export interface HallInput {
-  hallNumber: number;
+  /** Пусто — зал без номера («Вне постоянной экспозиции»), бэкенд примет null. */
+  hallNumber?: number;
   name?: string;
   description?: string;
   coverImageUrl?: string;
+  /**
+   * Служебная запись (Парадная лестница и т.п.): зал остаётся в каталоге и в
+   * админке, но пропадает из публичной выдачи, с карты и из ответов гида.
+   */
+  isService?: boolean;
 }
 
 /** Данные формы витрины. */
 export interface ShowcaseInput {
   hallId: number;
-  showcaseNumber: number;
+  /** Пусто — витрина без номера, то есть группа «не в витринах». */
+  showcaseNumber?: number;
   name?: string;
 }
 

@@ -41,4 +41,8 @@ export const showcases = [
 
   // Hall 11 — Бежевый
   { id: 111, hallId: 11, showcaseNumber: 1, name: "Парадная эмалевая посуда" },
+
+  // Зал 99 — витрина без номера: группа «не в витринах» из путеводителя музея
+  // (бэкенд отдаёт showcase_number: null с 29.07.2026).
+  { id: 991, hallId: 99, name: "Не в витринах" },
 ] satisfies Showcase[];
