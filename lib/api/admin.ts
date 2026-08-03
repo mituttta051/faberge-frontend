@@ -183,7 +183,11 @@ export async function updateHall(id: number, input: HallInput): Promise<Hall> {
   );
 }
 
-// NB: на бэке DELETE /admin/halls/{id} пока нет — вернётся 404/405 (см. контракт).
+/**
+ * Удаляет зал. Непустой зал бэкенд удалять отказывается: если в нём есть
+ * витрины — 409 с текстом «Зал не пуст». Каскад включается `?force=true`,
+ * который мы намеренно не шлём, — см. диалог подтверждения в админке.
+ */
 export async function deleteHall(id: number): Promise<void> {
   await request<void>(`/admin/halls/${id}`, { method: "DELETE" });
 }
@@ -230,7 +234,10 @@ export async function createShowcase(input: ShowcaseInput): Promise<Showcase> {
   );
 }
 
-// NB: на бэке PATCH /admin/showcases/{id} пока нет — вернётся 404/405 (см. контракт).
+/**
+ * Частичное обновление витрины. Перенос в другой зал и смена номера учитывают
+ * уникальность пары (зал, номер) — при конфликте бэкенд отвечает 409.
+ */
 export async function updateShowcase(id: number, input: ShowcaseInput): Promise<Showcase> {
   return mapShowcase(
     await request<WireShowcase>(`/admin/showcases/${id}`, {
@@ -240,7 +247,7 @@ export async function updateShowcase(id: number, input: ShowcaseInput): Promise<
   );
 }
 
-// NB: на бэке DELETE /admin/showcases/{id} пока нет — вернётся 404/405 (см. контракт).
+/** Удаляет витрину. Непустую — только с `?force=true`, иначе 409. */
 export async function deleteShowcase(id: number): Promise<void> {
   await request<void>(`/admin/showcases/${id}`, { method: "DELETE" });
 }
