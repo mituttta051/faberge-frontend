@@ -23,3 +23,23 @@ export type {
   AdminSession,
   ExhibitImage,
 } from "./admin";
+export type {
+  AnalyticsPeriod,
+  AnalyticsTopItem,
+  AnalyticsOverview,
+  AnalyticsQuestionItem,
+  AnalyticsQuestions,
+  AnalyticsDurationBucket,
+  AnalyticsEngagement,
+  AnalyticsRouteHall,
+  AnalyticsRouteTransition,
+  AnalyticsRoutePath,
+  AnalyticsSessionsPerDeviceBucket,
+  AnalyticsRoutes,
+  AnalyticsUnansweredItem,
+  AnalyticsUnanswered,
+  AnalyticsExhibitRow,
+  AnalyticsExhibitsOrder,
+  AnalyticsExhibits,
+  AnalyticsRecognition,
+} from "./analytics";

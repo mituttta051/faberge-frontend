@@ -27,6 +27,32 @@ export function showcaseLabel(showcase?: Showcase | null): string {
 }
 
 /**
+ * Тип события телеметрии по-русски: «На каком экране уходят» показывает именно
+ * типы событий (`chat_message`, `exhibit_view`), и без расшифровки отчёт
+ * читается только тем, кто помнит контракт телеметрии.
+ *
+ * Неизвестный тип отдаём как есть: словарь на бэкенде может пополниться раньше,
+ * чем здесь, и «chat_reaction» полезнее прочерка.
+ */
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  app_open: "Открытие приложения",
+  hall_view: "Зал",
+  showcase_view: "Витрина",
+  exhibit_view: "Карточка экспоната",
+  recognition: "Распознавание",
+  chat_open: "Чат с гидом",
+  chat_message: "Вопрос гиду",
+  tts_play: "Озвучка",
+  search_query: "Поиск",
+  session_end: "Завершение сессии",
+};
+
+export function eventTypeLabel(type?: string): string {
+  if (!type) return "Неизвестный экран";
+  return EVENT_TYPE_LABELS[type] ?? type;
+}
+
+/**
  * Размещение одной строкой, только по номерам: «Зал 5 · Витрина 3».
  * Названия сюда не попадают — иначе строка таблицы разъезжается.
  */

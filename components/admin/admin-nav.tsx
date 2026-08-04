@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Box, Grid3x3, LayoutDashboard, LogOut, DoorOpen } from "lucide-react";
+import { BarChart3, Box, Grid3x3, LayoutDashboard, LogOut, DoorOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminAuth } from "./auth-gate";
 
@@ -12,6 +12,7 @@ const NAV = [
   { href: "/admin/halls", label: "Залы", icon: DoorOpen },
   { href: "/admin/showcases", label: "Витрины", icon: Grid3x3 },
   { href: "/admin/exhibits", label: "Экспонаты", icon: Box },
+  { href: "/admin/analytics", label: "Аналитика", icon: BarChart3 },
 ] as const;
 
 export function AdminNav() {
@@ -34,9 +35,7 @@ export function AdminNav() {
               href={href}
               className={cn(
                 "flex shrink-0 items-center gap-2 px-3 py-2 text-sm transition-colors",
-                active
-                  ? "bg-accent text-accent-foreground"
-                  : "text-foreground hover:bg-muted",
+                active ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-muted",
               )}
             >
               <Icon className="h-4 w-4" />
