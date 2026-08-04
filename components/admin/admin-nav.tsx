@@ -19,8 +19,13 @@ export function AdminNav() {
   const pathname = usePathname();
   const { session, logout } = useAdminAuth();
 
+  // Панель не уезжает при прокрутке: `sticky top-0` и на мобильной шапке, и на
+  // боковом меню. На десктопе к этому нужен `md:self-start` — иначе flex
+  // растягивает меню на всю высоту страницы и липнуть становится нечему, а
+  // `md:overflow-y-auto` оставляет пункты доступными, если их станет больше,
+  // чем помещается в экран.
   return (
-    <nav className="border-border bg-background flex shrink-0 flex-row gap-1 border-b p-2 md:h-screen md:w-60 md:flex-col md:border-r md:border-b-0 md:p-4">
+    <nav className="border-border bg-background sticky top-0 z-20 flex shrink-0 flex-row gap-1 border-b p-2 md:h-screen md:w-60 md:flex-col md:self-start md:overflow-y-auto md:border-r md:border-b-0 md:p-4">
       <div className="hidden md:mb-4 md:block">
         <p className="font-display text-base">Музей Фаберже</p>
         <p className="text-muted-foreground text-xs">Админ-панель</p>
