@@ -1,6 +1,17 @@
 /** Базовый URL API. Пусто — относительный путь (для MSW в dev). */
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
+/**
+ * Тот же базовый URL для запросов мимо `request()`.
+ *
+ * Нужен телеметрии: финальный флаш уходит через `navigator.sendBeacon`, а он
+ * принимает только готовый URL — обёртку с заголовками и таймаутом ему не
+ * передать.
+ */
+export function apiUrl(path: string): string {
+  return `${BASE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
 /** Ошибка от API: статус + тело. */
 export class ApiError extends Error {
   constructor(
@@ -112,10 +123,7 @@ const PAGE_SIZE = 100;
  * увеличивая `offset`, пока не соберём `total` элементов (или пока страница
  * не вернётся неполной). `guard` страхует от бесконечного цикла при кривом `total`.
  */
-export async function fetchAllPaged<T>(
-  path: string,
-  options: RequestOptions = {},
-): Promise<T[]> {
+export async function fetchAllPaged<T>(path: string, options: RequestOptions = {}): Promise<T[]> {
   const { query, ...rest } = options;
   const all: T[] = [];
   let offset = 0;

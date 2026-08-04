@@ -1,25 +1,49 @@
 /**
  * События посетителя для админ-аналитики.
  *
- * Набор типов не произвольный — бэкенд агрегирует ровно эти строки:
- * `app_open` и `recognition` считаются поштучно, `recognition` дополнительно
- * разбирается по `props.recognized`, а `hall_view` / `exhibit_view` дают
- * топы залов и экспонатов и маршрут посетителя. Добавлять новый тип имеет
- * смысл только вместе с правкой аналитики на бэке.
+ * Набор типов не произвольный — это словарь бэкенда (`schemas.EventType`,
+ * контракт от 03.08.2026). Событие с типом вне словаря бэкенд отбрасывает
+ * поштучно и возвращает в `rejected`: опечатка на фронте не уронит батч, но и
+ * в отчёты не попадёт. Добавлять новый тип имеет смысл только вместе с правкой
+ * аналитики на бэке.
+ *
+ * `audio_play` больше не используем: канонический тип озвучки — `tts_play`.
+ * Бэкенд нормализует старое имя в новое, чтобы накопленные данные не
+ * раздвоились в отчётах, но слать нужно каноническое.
  */
 export type TelemetryEventType =
   | "app_open"
   | "hall_view"
+  | "showcase_view"
   | "exhibit_view"
   | "recognition"
-  | "audio_play";
+  | "chat_open"
+  | "chat_message"
+  | "tts_play"
+  | "search_query"
+  | "session_end";
+
+/**
+ * Откуда посетитель попал на карточку экспоната — `props.source` у
+ * `exhibit_view`. Нужен для отчёта «откуда приходят на карточки»: переход из
+ * зала и переход из фолбэка распознавания говорят о разном.
+ */
+export type ExhibitViewSource = "hall" | "showcase" | "search" | "recognition" | "chat" | "direct";
 
 export interface TelemetryEvent {
   type: TelemetryEventType;
   exhibitId?: number;
   hallId?: number;
+  showcaseId?: number;
   labelSlug?: string;
-  /** Детали события. Аналитика читает `recognized` у `recognition`. */
+  /**
+   * Детали события. Бэкенд хранит только ключи из белого списка своего типа
+   * события (`app_open`: entry/qr_id; `exhibit_view`: source; `recognition`:
+   * recognized/confidence/fallback/candidates_count; `chat_message` и
+   * `search_query`: text/results_count; `session_end`: reason/last_screen) —
+   * всё остальное отбрасывается на приёме. Персональных данных здесь быть не
+   * должно: ни UA, ни referrer, ни полного URL с query.
+   */
   props?: Record<string, unknown>;
 }
 

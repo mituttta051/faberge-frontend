@@ -81,7 +81,7 @@ export const useAudioStore = create<AudioState>((set, get) => ({
         set({ _audio: audio, status: "playing" });
         // Считаем только реально начавшееся воспроизведение нового источника:
         // возобновление с паузы выше по функции сюда не доходит.
-        track({ type: "audio_play", exhibitId: exhibitIdFromKey(key) });
+        track({ type: "tts_play", exhibitId: exhibitIdFromKey(key) });
       } else {
         audio.pause();
       }

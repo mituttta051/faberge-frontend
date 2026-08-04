@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { Exhibit } from "@/lib/types";
+import { markExhibitSource } from "@/lib/telemetry";
 
 interface Props {
   items: Exhibit[];
@@ -26,6 +27,7 @@ export function RelatedRecommendations({ items, excludeId, limit = 3 }: Props) {
           <li key={ex.id} className="w-32 shrink-0">
             <Link
               href={`/exhibits/${ex.id}`}
+              onClick={() => markExhibitSource("chat")}
               className="border-border group/rec hover:border-foreground/40 block border transition-all duration-300 ease-out hover:shadow-sm"
             >
               {ex.photoUrl && (

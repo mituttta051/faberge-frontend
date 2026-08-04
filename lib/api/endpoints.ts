@@ -13,7 +13,9 @@ import type {
   Showcase,
   StoryResult,
 } from "@/lib/types";
-import { fetchAllPaged, request } from "./client";
+import { apiUrl, fetchAllPaged, request } from "./client";
+
+const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
 
 // ============================
 // Wire-типы (snake_case, как в OpenAPI).
@@ -473,34 +475,73 @@ export async function chatWithGuide(input: ChatTurnInput): Promise<ChatTurnResul
 // Телеметрия
 // ============================
 
+export interface TelemetryBatch {
+  sessionId: string;
+  /** Анонимный ID устройства — по нему бэкенд считает повторные визиты. */
+  deviceId?: string;
+  events: QueuedTelemetryEvent[];
+}
+
+function toWireEvent(e: QueuedTelemetryEvent) {
+  return {
+    type: e.type,
+    exhibit_id: e.exhibitId,
+    hall_id: e.hallId,
+    showcase_id: e.showcaseId,
+    label_slug: e.labelSlug,
+    props: e.props,
+    ts: e.ts,
+  };
+}
+
 /**
- * Отправить пачку событий. Ответ (202 + счётчик) никому не нужен — вызывающий
- * код не должен падать из-за аналитики, поэтому глотаем любую ошибку.
+ * Отправить пачку событий. Возвращает `true`, если пачку удалось отдать, —
+ * трекер по этому признаку решает, возвращать ли события в очередь. Ошибку
+ * наружу не бросаем никогда: аналитика не должна ронять вызывающий код.
  *
- * `keepalive` нужен для отправки, когда посетитель уже уходит со страницы:
- * обычный fetch браузер в этот момент отменяет, и последнее взаимодействие
- * терялось бы, занижая метрику длительности сессии.
+ * `beacon` — для финального флаша (уход со страницы, закрытие вкладки).
+ * `navigator.sendBeacon` переживает выгрузку документа, тогда как обычный
+ * запрос браузер в этот момент вправе оборвать — а это ровно те события,
+ * которые дают точку выхода и длительность визита. Ответ beacon недоступен,
+ * поэтому успехом считаем сам факт постановки в очередь браузера.
+ *
+ * В мок-режиме beacon не используем: MSW перехватывает fetch и XHR, но не
+ * `sendBeacon`, — события демо-стенда ушли бы в реальную аналитику.
  */
-export async function sendEvents(sessionId: string, events: QueuedTelemetryEvent[]): Promise<void> {
-  if (events.length === 0) return;
+export async function sendEvents(
+  batch: TelemetryBatch,
+  opts: { beacon?: boolean } = {},
+): Promise<boolean> {
+  if (batch.events.length === 0) return true;
+  const body = {
+    session_id: batch.sessionId,
+    device_id: batch.deviceId,
+    events: batch.events.map(toWireEvent),
+  };
+
+  if (opts.beacon && !USE_MOCKS && typeof navigator !== "undefined" && navigator.sendBeacon) {
+    try {
+      const blob = new Blob([JSON.stringify(body)], { type: "application/json" });
+      if (navigator.sendBeacon(apiUrl("/telemetry/events"), blob)) return true;
+    } catch {
+      // Не поддержали Blob или превысили лимит — уходим в обычный запрос.
+    }
+  }
+
   try {
-    await request<{ accepted: number }>("/telemetry/events", {
+    const res = await request<{ accepted: number; rejected: number }>("/telemetry/events", {
       method: "POST",
       keepalive: true,
-      json: {
-        session_id: sessionId,
-        events: events.map((e) => ({
-          type: e.type,
-          exhibit_id: e.exhibitId,
-          hall_id: e.hallId,
-          label_slug: e.labelSlug,
-          props: e.props,
-          ts: e.ts,
-        })),
-      },
+      json: body,
     });
+    // `rejected` — события с типом вне словаря бэкенда. В проде это тихая
+    // потеря данных, поэтому шумим в консоль на деве, где ошибку ещё чинят.
+    if (process.env.NODE_ENV !== "production" && res?.rejected) {
+      console.warn(`Телеметрия: бэкенд отбросил ${res.rejected} событий (неизвестный type)`);
+    }
+    return true;
   } catch {
-    // Аналитика — не критичный путь: молча теряем пачку.
+    return false;
   }
 }
 

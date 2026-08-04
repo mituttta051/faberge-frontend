@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import type { ChatExhibitRef } from "@/lib/types";
+import { markExhibitSource } from "@/lib/telemetry";
 
 interface Props {
   items: ChatExhibitRef[];
@@ -21,7 +22,12 @@ function locationLabel(e: ChatExhibitRef): string | null {
 }
 
 /** Плашки-ссылки на карточки экспонатов, упомянутых в ответе гида (C23). */
-export function ReferencedExhibits({ items, excludeId, limit = 4, label = "Упомянуто в ответе" }: Props) {
+export function ReferencedExhibits({
+  items,
+  excludeId,
+  limit = 4,
+  label = "Упомянуто в ответе",
+}: Props) {
   const list = items.filter((e) => e.id !== excludeId).slice(0, limit);
   if (list.length === 0) return null;
 
@@ -35,6 +41,7 @@ export function ReferencedExhibits({ items, excludeId, limit = 4, label = "Уп�
             <li key={e.id}>
               <Link
                 href={`/exhibits/${e.id}`}
+                onClick={() => markExhibitSource("chat")}
                 className="group/ref border-border hover:border-foreground/40 bg-background flex items-stretch gap-2.5 border transition-colors"
               >
                 {e.thumbnailUrl ? (
@@ -53,7 +60,9 @@ export function ReferencedExhibits({ items, excludeId, limit = 4, label = "Уп�
                       {e.exhibitNumber ? `№${e.exhibitNumber} ` : ""}
                       {e.name}
                     </p>
-                    {where && <p className="text-muted-foreground mt-0.5 truncate text-[11px]">{where}</p>}
+                    {where && (
+                      <p className="text-muted-foreground mt-0.5 truncate text-[11px]">{where}</p>
+                    )}
                   </div>
                   <ChevronRight className="text-muted-foreground group-hover/ref:text-foreground h-4 w-4 shrink-0 transition-colors" />
                 </div>

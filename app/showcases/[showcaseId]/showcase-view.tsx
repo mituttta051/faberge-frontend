@@ -7,11 +7,15 @@ import { useSafeBack } from "@/lib/hooks/use-safe-back";
 import { showcaseTitle } from "@/lib/labels";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useShowcase, useShowcaseExhibits } from "@/lib/api/hooks";
+import { markExhibitSource, useTrackView } from "@/lib/telemetry";
 
 export function ShowcaseView({ showcaseId }: { showcaseId: number }) {
   const safeBack = useSafeBack();
   const { data: showcase, isLoading } = useShowcase(showcaseId);
   const { data: exhibits } = useShowcaseExhibits(showcaseId);
+  // Зал передаём вместе с витриной: маршрут по музею строится по залам, и без
+  // него просмотр витрины выпадает из цепочки.
+  useTrackView("showcase_view", showcase?.id, { hallId: showcase?.hallId });
 
   return (
     <Screen>
@@ -43,6 +47,7 @@ export function ShowcaseView({ showcaseId }: { showcaseId: number }) {
               <li key={e.id}>
                 <Link
                   href={`/exhibits/${e.id}`}
+                  onClick={() => markExhibitSource("showcase")}
                   className="hover:bg-muted -mx-2 block px-2 py-2 text-sm"
                 >
                   {e.name}{" "}

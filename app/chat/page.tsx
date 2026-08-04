@@ -21,6 +21,7 @@ import { useChatStore } from "@/lib/store/chat-store";
 import { useSafeBack } from "@/lib/hooks/use-safe-back";
 import { RelatedRecommendations } from "@/components/chat/related-recommendations";
 import { hallTitle } from "@/lib/labels";
+import { track } from "@/lib/telemetry";
 import type { ChatContext, ChatExhibitCard, ChatExhibitRef, Exhibit } from "@/lib/types";
 
 /** Подсказки для общего чата (без контекста экспоната/зала). */
@@ -72,6 +73,36 @@ function ChatContent() {
   const session = useChatStore((s) => s.chat);
   const messages = session?.messages ?? [];
   const context = session?.context;
+
+  /*
+   * Открытие чата — знаменатель конверсии «дошли до диалога», поэтому событие
+   * шлём один раз за монтирование экрана, а не на каждое изменение контекста.
+   *
+   * Контекст берём из query, а из треда — только как запасной вариант: эффект
+   * ниже, который переносит `?exhibit=…` в стор, отрабатывает уже после этого,
+   * и чат, открытый с карточки, уходил бы в аналитику как чат без контекста.
+   * Порядок эффектов тут значим — этот объявлен раньше и query ещё не стёрт
+   * `router.replace`.
+   */
+  const chatOpenSentRef = useRef(false);
+  useEffect(() => {
+    if (!mounted || chatOpenSentRef.current) return;
+    chatOpenSentRef.current = true;
+    const ctx = useChatStore.getState().chat?.context;
+    const fromUrl = (name: string) => {
+      const raw = searchParams.get(name);
+      const n = raw ? Number(raw) : NaN;
+      return Number.isFinite(n) ? n : undefined;
+    };
+    track({
+      type: "chat_open",
+      exhibitId: fromUrl("exhibit") ?? ctx?.exhibitId,
+      hallId: fromUrl("hall") ?? ctx?.hallId,
+    });
+    // searchParams в зависимости не кладём: событие одноразовое, а замена
+    // адреса на «/chat» повторно эффект дёргать не должна.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted]);
 
   const { data: contextExhibit } = useExhibit(context?.exhibitId);
   const { data: contextHall } = useHall(context?.hallId);
@@ -147,6 +178,14 @@ function ChatContent() {
   const handleSubmit = (text: string) => {
     const store = useChatStore.getState();
     store.getOrCreate();
+    // Текст вопроса нужен отчёту «частые вопросы»; экспонат и зал — чтобы
+    // понять, у какой карточки не хватает описания.
+    track({
+      type: "chat_message",
+      exhibitId: context?.exhibitId,
+      hallId: context?.hallId,
+      props: { text },
+    });
     store.addMessage({
       id: uid("local"),
       role: "user",
