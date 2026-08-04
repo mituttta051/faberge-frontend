@@ -2,9 +2,24 @@ import { http, HttpResponse, delay } from "msw";
 import { halls, type MockHall } from "./data/halls";
 import { showcases } from "./data/showcases";
 import { exhibits, type MockExhibit } from "./data/exhibits";
+import {
+  engagementMock,
+  exhibitsMock,
+  overviewMock,
+  questionsMock,
+  recognitionMock,
+  routesMock,
+  unansweredMock,
+} from "./data/analytics";
 
 /** Имитация сетевой задержки — даём UI показать лоадеры. */
 const NETWORK_DELAY_MS = 300;
+
+/** Границы периода из query аналитических ручек. */
+function analyticsRange(rawUrl: string) {
+  const url = new URL(rawUrl);
+  return { from: url.searchParams.get("from"), to: url.searchParams.get("to") };
+}
 
 /** In-memory история диалога по session_id (живёт в рамках вкладки). */
 const chatHistory = new Map<string, { role: "user" | "assistant"; content: string }[]>();
@@ -177,7 +192,69 @@ function makeSuggestions(exhibitName: string): string[] {
   ];
 }
 
+// Порядок в массиве значим: MSW берёт ПЕРВЫЙ подходящий обработчик, а
+// `*/exhibits` из каталога перехватывает и `/admin/analytics/exhibits`.
+// Поэтому админские маршруты идут выше каталожных, а не в конце файла.
 export const handlers = [
+  // Логин в админку. Без него мок-режим упирается в форму входа и до панели
+  // не добраться — пароль проверять некому. Пускаем с любой парой логин/пароль:
+  // обработчик живёт только при NEXT_PUBLIC_USE_MOCKS=true и в прод не попадает.
+  http.post("*/admin/login", async () => {
+    await delay(NETWORK_DELAY_MS);
+    return HttpResponse.json({ access_token: "mock-admin-token", token_type: "bearer" });
+  }),
+
+  // ============================
+  // Админ-аналитика
+  // ============================
+  // Все отчёты — функции от `from`/`to`: иначе фильтр по датам нечем проверить,
+  // сломанный и рабочий выглядели бы одинаково.
+
+  http.get("*/admin/analytics/overview", async ({ request }) => {
+    await delay(NETWORK_DELAY_MS);
+    const { from, to } = analyticsRange(request.url);
+    return HttpResponse.json(overviewMock(from, to));
+  }),
+
+  http.get("*/admin/analytics/questions", async ({ request }) => {
+    await delay(NETWORK_DELAY_MS);
+    const { from, to } = analyticsRange(request.url);
+    return HttpResponse.json(questionsMock(from, to));
+  }),
+
+  http.get("*/admin/analytics/engagement", async ({ request }) => {
+    await delay(NETWORK_DELAY_MS);
+    const { from, to } = analyticsRange(request.url);
+    return HttpResponse.json(engagementMock(from, to));
+  }),
+
+  http.get("*/admin/analytics/routes", async ({ request }) => {
+    await delay(NETWORK_DELAY_MS);
+    const { from, to } = analyticsRange(request.url);
+    return HttpResponse.json(routesMock(from, to));
+  }),
+
+  http.get("*/admin/analytics/unanswered", async ({ request }) => {
+    await delay(NETWORK_DELAY_MS);
+    const { from, to } = analyticsRange(request.url);
+    return HttpResponse.json(unansweredMock(from, to));
+  }),
+
+  http.get("*/admin/analytics/exhibits", async ({ request }) => {
+    await delay(NETWORK_DELAY_MS);
+    const url = new URL(request.url);
+    const { from, to } = analyticsRange(request.url);
+    const order = url.searchParams.get("order") ?? "views";
+    const limit = Number(url.searchParams.get("limit") ?? 20);
+    return HttpResponse.json(exhibitsMock(from, to, order, limit));
+  }),
+
+  http.get("*/admin/analytics/recognition", async ({ request }) => {
+    await delay(NETWORK_DELAY_MS);
+    const { from, to } = analyticsRange(request.url);
+    return HttpResponse.json(recognitionMock(from, to));
+  }),
+
   // ============================
   // Каталог: залы, витрины, экспонаты
   // ============================

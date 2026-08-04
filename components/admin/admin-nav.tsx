@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Box, Grid3x3, LayoutDashboard, LogOut, DoorOpen } from "lucide-react";
+import { BarChart3, Box, Grid3x3, LayoutDashboard, LogOut, DoorOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminAuth } from "./auth-gate";
 
@@ -12,14 +12,20 @@ const NAV = [
   { href: "/admin/halls", label: "Залы", icon: DoorOpen },
   { href: "/admin/showcases", label: "Витрины", icon: Grid3x3 },
   { href: "/admin/exhibits", label: "Экспонаты", icon: Box },
+  { href: "/admin/analytics", label: "Аналитика", icon: BarChart3 },
 ] as const;
 
 export function AdminNav() {
   const pathname = usePathname();
   const { session, logout } = useAdminAuth();
 
+  // Панель не уезжает при прокрутке: `sticky top-0` и на мобильной шапке, и на
+  // боковом меню. На десктопе к этому нужен `md:self-start` — иначе flex
+  // растягивает меню на всю высоту страницы и липнуть становится нечему, а
+  // `md:overflow-y-auto` оставляет пункты доступными, если их станет больше,
+  // чем помещается в экран.
   return (
-    <nav className="border-border bg-background flex shrink-0 flex-row gap-1 border-b p-2 md:h-screen md:w-60 md:flex-col md:border-r md:border-b-0 md:p-4">
+    <nav className="border-border bg-background sticky top-0 z-20 flex shrink-0 flex-row gap-1 border-b p-2 md:h-screen md:w-60 md:flex-col md:self-start md:overflow-y-auto md:border-r md:border-b-0 md:p-4">
       <div className="hidden md:mb-4 md:block">
         <p className="font-display text-base">Музей Фаберже</p>
         <p className="text-muted-foreground text-xs">Админ-панель</p>
@@ -34,9 +40,7 @@ export function AdminNav() {
               href={href}
               className={cn(
                 "flex shrink-0 items-center gap-2 px-3 py-2 text-sm transition-colors",
-                active
-                  ? "bg-accent text-accent-foreground"
-                  : "text-foreground hover:bg-muted",
+                active ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-muted",
               )}
             >
               <Icon className="h-4 w-4" />
