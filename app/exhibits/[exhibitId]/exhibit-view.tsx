@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AudioButton } from "@/components/audio/audio-button";
 import { useExhibit, useRelatedExhibits } from "@/lib/api/hooks";
-import { useTrackView } from "@/lib/telemetry";
+import { markExhibitSource, useTrackView } from "@/lib/telemetry";
 
 const ELLIPSIS_RE = /(?:…|\.{3})\s*$/;
 
@@ -113,6 +113,7 @@ export function ExhibitView({ exhibitId }: { exhibitId: number }) {
                       <li key={r.id} className="w-40 shrink-0">
                         <Link
                           href={`/exhibits/${r.id}`}
+                          onClick={() => markExhibitSource("hall")}
                           className="border-border group/related hover:border-foreground/40 block border transition-all duration-300 ease-out hover:shadow-sm"
                         >
                           {r.photoUrl && (

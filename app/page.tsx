@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useDeferredValue, useEffect, useState } from "react";
+import { Suspense, useDeferredValue, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Building2, Camera, ChevronDown, MessageCircle, Search, Sparkles } from "lucide-react";
@@ -15,8 +15,12 @@ import { HallList } from "@/components/halls/hall-list";
 import { hallTitle } from "@/lib/labels";
 import { CoachMarkTour, type TourStep } from "@/components/tour/coach-mark-tour";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { markExhibitSource, track } from "@/lib/telemetry";
 
 const TOUR_SEEN_KEY = "museum-tour-seen";
+
+/** Пауза ввода, после которой поисковый запрос считается завершённым. */
+const SEARCH_TRACK_DELAY_MS = 800;
 
 /** «1 зал», «3 зала», «10 залов» — склонение для счётчика в шапке. */
 function hallsWord(n: number): string {
@@ -110,6 +114,27 @@ function HomeContent() {
   // а результаты не пропадают между кадрами (см. `placeholderData` в хуке).
   const deferredQuery = useDeferredValue(searchQuery);
   const { data: searchData } = useSearchCatalog(deferredQuery);
+
+  /*
+   * Поисковый запрос уходит в аналитику один раз по завершённому вводу.
+   *
+   * Поиск инкрементальный, и событие на каждый кадр дало бы в отчёте мусор
+   * «я», «яй», «яйц», «яйцо» вместо одного запроса. Количество результатов
+   * читаем из ref, а не из зависимостей эффекта: иначе приход ответа сервера
+   * перезапускал бы таймер и событие уходило бы позже, чем нужно.
+   */
+  const resultsCountRef = useRef(0);
+  resultsCountRef.current = searchData ? searchData.halls.length + searchData.exhibits.length : 0;
+
+  useEffect(() => {
+    const text = searchQuery.trim();
+    // Один-два символа — это ещё не запрос, а начало набора.
+    if (text.length < 2) return;
+    const timer = setTimeout(() => {
+      track({ type: "search_query", props: { text, results_count: resultsCountRef.current } });
+    }, SEARCH_TRACK_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   return (
     <Screen>
@@ -269,7 +294,10 @@ function HomeContent() {
                 <Link
                   key={`exhibit-${e.id}`}
                   href={`/exhibits/${e.id}`}
-                  onClick={() => setSearchOpen(false)}
+                  onClick={() => {
+                    markExhibitSource("search");
+                    setSearchOpen(false);
+                  }}
                   className="hover:bg-muted -mx-2 px-2 py-3 text-left text-sm transition-colors"
                 >
                   <span className="text-muted-foreground mr-2 text-xs tracking-widest uppercase">

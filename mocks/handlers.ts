@@ -204,6 +204,14 @@ export const handlers = [
     return HttpResponse.json({ access_token: "mock-admin-token", token_type: "bearer" });
   }),
 
+  // Телеметрия. Мок нужен не для UI (ответ никто не показывает), а чтобы
+  // события демо-стенда не улетали в реальную аналитику музея: без обработчика
+  // MSW пропустил бы запрос на прод-гейтвей и испортил отчёты.
+  http.post("*/telemetry/events", async ({ request }) => {
+    const body = (await request.json()) as { events?: unknown[] };
+    return HttpResponse.json({ accepted: body?.events?.length ?? 0, rejected: 0 }, { status: 202 });
+  }),
+
   // ============================
   // Админ-аналитика
   // ============================

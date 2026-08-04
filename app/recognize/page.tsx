@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AlertCircle, Sparkles } from "lucide-react";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { CameraCapture } from "@/components/camera/camera-capture";
 import { useRecognizeExhibit } from "@/lib/api/hooks";
-import { track } from "@/lib/telemetry";
+import { markExhibitSource, track } from "@/lib/telemetry";
 
 type RecognizeStep = "camera" | "recognizing" | "result" | "not_recognized" | "error";
 
@@ -20,21 +20,41 @@ export default function RecognizePage() {
   const [step, setStep] = useState<RecognizeStep>("camera");
   const recognize = useRecognizeExhibit();
 
+  // Повторная съёмка после неудачи — отдельная метрика: заказчик хочет знать,
+  // пробуют ли ещё раз или уходят. Флаг живёт в ref, а не в state: перерисовка
+  // экрана от него не зависит.
+  const failedOnce = useRef(false);
+
   const handleCapture = async (blob: Blob) => {
     setStep("recognizing");
+    const retry = failedOnce.current;
     try {
       const result = await recognize.mutateAsync(blob);
       const ok = result.recognized && !!result.exhibit;
-      // `recognized` — то, по чему бэк считает долю удачных распознаваний.
+      const candidatesCount = result.candidates?.length ?? 0;
+      failedOnce.current = !ok;
+      // `recognized` — то, по чему бэк считает долю удачных распознаваний,
+      // `fallback` — как часто вместо ответа показываем список кандидатов.
       track({
         type: "recognition",
         exhibitId: result.exhibit?.id,
         labelSlug: result.labelSlug,
-        props: { recognized: ok, confidence: result.confidence },
+        props: {
+          recognized: ok,
+          confidence: result.confidence,
+          fallback: !ok && candidatesCount > 0,
+          candidates_count: candidatesCount,
+          retry,
+        },
       });
       setStep(ok ? "result" : "not_recognized");
     } catch {
-      track({ type: "recognition", props: { recognized: false, failed: true } });
+      failedOnce.current = true;
+      // Сетевая ошибка — тоже неудачная попытка, но кандидатов в ней нет.
+      track({
+        type: "recognition",
+        props: { recognized: false, fallback: false, candidates_count: 0, retry },
+      });
       setStep("error");
     }
   };
@@ -99,7 +119,11 @@ export default function RecognizePage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Link href={`/exhibits/${exhibit.id}`} className="block">
+              <Link
+                href={`/exhibits/${exhibit.id}`}
+                onClick={() => markExhibitSource("recognition")}
+                className="block"
+              >
                 <Button variant="accent" fullWidth>
                   Открыть карточку
                 </Button>
@@ -133,7 +157,10 @@ export default function RecognizePage() {
                   {candidates.map((c) => (
                     <li key={c.labelSlug}>
                       <Link
-                        href={c.exhibitId ? `/exhibits/${c.exhibitId}` : `/chat?label=${c.labelSlug}`}
+                        href={
+                          c.exhibitId ? `/exhibits/${c.exhibitId}` : `/chat?label=${c.labelSlug}`
+                        }
+                        onClick={() => markExhibitSource("recognition")}
                         className="group/cand border-border hover:border-foreground/40 flex items-stretch gap-3 border transition-colors"
                       >
                         {c.thumbnailUrl ? (

@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useHall, useHallShowcases, useHallExhibits } from "@/lib/api/hooks";
-import { useTrackView } from "@/lib/telemetry";
+import { markExhibitSource, useTrackView } from "@/lib/telemetry";
 import { byShowcaseNumber, hallNumberCaption, hallTitle, showcaseTitle } from "@/lib/labels";
 
 export function HallView({ hallId }: { hallId: number }) {
@@ -86,6 +86,7 @@ export function HallView({ hallId }: { hallId: number }) {
                     <li key={e.id}>
                       <Link
                         href={`/exhibits/${e.id}`}
+                        onClick={() => markExhibitSource("hall")}
                         className="hover:bg-muted -mx-2 flex items-baseline gap-2 px-2 py-2 text-sm"
                       >
                         {/* Номер экспоната по путеводителю; номер витрины — отдельной

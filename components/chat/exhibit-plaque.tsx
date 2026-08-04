@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import type { ChatExhibitCard } from "@/lib/types";
+import { markExhibitSource } from "@/lib/telemetry";
 
 interface Props {
   exhibit: ChatExhibitCard;
@@ -14,6 +15,7 @@ export function ExhibitPlaque({ exhibit }: Props) {
   return (
     <Link
       href={`/exhibits/${exhibit.id}`}
+      onClick={() => markExhibitSource("chat")}
       className="group/plaque border-border hover:border-foreground/40 bg-background mb-3 flex items-stretch gap-3 border transition-colors"
     >
       {exhibit.photoUrl ? (

@@ -13,7 +13,12 @@ export type {
   ChatTurnResult,
 } from "./chat";
 export type { RecognizeResult, RecognitionCandidate } from "./recognize";
-export type { TelemetryEvent, TelemetryEventType, QueuedTelemetryEvent } from "./telemetry";
+export type {
+  TelemetryEvent,
+  TelemetryEventType,
+  QueuedTelemetryEvent,
+  ExhibitViewSource,
+} from "./telemetry";
 export type { SearchResponse } from "./search";
 export type {
   HallInput,

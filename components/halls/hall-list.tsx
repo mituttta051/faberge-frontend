@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useHallExhibits, useHallShowcases } from "@/lib/api/hooks";
 import { byShowcaseNumber, hallNumberCaption, hallTitle, showcaseTitle } from "@/lib/labels";
 import type { Exhibit, Hall, Showcase } from "@/lib/types";
+import { markExhibitSource } from "@/lib/telemetry";
 
 /**
  * Список залов выбранной экспозиции — сразу целиком, без промежуточного выбора.
@@ -195,6 +196,7 @@ function ShowcaseGroup({
             <li key={e.id}>
               <Link
                 href={`/exhibits/${e.id}`}
+                onClick={() => markExhibitSource("hall")}
                 className="hover:bg-muted -mx-2 flex items-baseline gap-2 px-2 py-1.5 text-sm"
               >
                 {e.exhibitNumber && (
