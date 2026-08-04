@@ -24,6 +24,7 @@ import {
 } from "@/lib/admin/format";
 import { BarList } from "@/components/admin/analytics/bar-list";
 import { DateRangeFilter } from "@/components/admin/analytics/date-range-filter";
+import { ExportButtons } from "@/components/admin/analytics/export-buttons";
 import { ExhibitsTable, type ExhibitsOrder } from "@/components/admin/analytics/exhibits-table";
 import { QuestionTable } from "@/components/admin/analytics/question-table";
 import { RecognitionReport } from "@/components/admin/analytics/recognition-report";
@@ -101,7 +102,12 @@ function AnalyticsPageInner() {
         </p>
       </header>
 
-      <DateRangeFilter value={range} onChange={setRange} />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <DateRangeFilter value={range} onChange={setRange} />
+        {/* Общий экспорт дашборда — это сводка: она и есть «дашборд одним
+            файлом», у остальных отчётов кнопки стоят у своих таблиц. */}
+        <ExportButtons report="overview" range={range} />
+      </div>
 
       {noData ? (
         <p className="border-border text-muted-foreground border border-dashed p-6 text-sm">
@@ -216,6 +222,7 @@ function AnalyticsPageInner() {
             loading={questions.isLoading}
             error={questions.error}
             empty={(questions.data?.frequent.length ?? 0) === 0}
+            action={<ExportButtons report="questions" range={range} />}
           >
             <QuestionTable items={questions.data?.frequent ?? []} />
           </ReportSection>
@@ -237,6 +244,7 @@ function AnalyticsPageInner() {
             error={unanswered.error}
             empty={(unanswered.data?.items.length ?? 0) === 0}
             emptyLabel="За период гид отвечал на все вопросы."
+            action={<ExportButtons report="unanswered" range={range} />}
           >
             <UnansweredTable items={unanswered.data?.items ?? []} />
           </ReportSection>
@@ -253,15 +261,18 @@ function AnalyticsPageInner() {
             error={exhibits.error}
             empty={(exhibits.data?.items.length ?? 0) === 0}
             action={
-              exhibits.data && (
-                <button
-                  type="button"
-                  onClick={() => setExhibitsOrder(exhibitsOrder === "asc" ? "views" : "asc")}
-                  className="border-border hover:bg-muted border px-3 py-1.5 text-sm transition-colors"
-                >
-                  {exhibitsOrder === "asc" ? "Показать популярные" : "Почти не открывают"}
-                </button>
-              )
+              <div className="flex flex-wrap items-start gap-2">
+                {exhibits.data && (
+                  <button
+                    type="button"
+                    onClick={() => setExhibitsOrder(exhibitsOrder === "asc" ? "views" : "asc")}
+                    className="border-border hover:bg-muted border px-3 py-1.5 text-sm transition-colors"
+                  >
+                    {exhibitsOrder === "asc" ? "Показать популярные" : "Почти не открывают"}
+                  </button>
+                )}
+                <ExportButtons report="exhibits" range={range} />
+              </div>
             }
           >
             <ExhibitsTable
@@ -280,6 +291,7 @@ function AnalyticsPageInner() {
             loading={routes.isLoading}
             error={routes.error}
             empty={(routes.data?.totalSessionsWithRoute ?? 0) === 0}
+            action={<ExportButtons report="routes" range={range} />}
           >
             {routes.data && <RoutesReport data={routes.data} />}
           </ReportSection>
@@ -291,6 +303,7 @@ function AnalyticsPageInner() {
             loading={recognition.isLoading}
             error={recognition.error}
             empty={(recognition.data?.total ?? 0) === 0}
+            action={<ExportButtons report="recognition" range={range} />}
           >
             {recognition.data && <RecognitionReport data={recognition.data} />}
           </ReportSection>

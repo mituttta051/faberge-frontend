@@ -106,6 +106,98 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   return data as T;
 }
 
+/** Файл из API: содержимое плюс имя, если сервер его отдал. */
+export interface FileResponse {
+  blob: Blob;
+  /** Имя из `Content-Disposition`; пусто, если заголовок недоступен. */
+  filename?: string;
+}
+
+/**
+ * Достать имя файла из `Content-Disposition`.
+ *
+ * Заголовок может и не дойти: он не входит в список простых ответных
+ * заголовков, и браузер покажет его, только если CORS явно разрешил через
+ * `Access-Control-Expose-Headers`. Поэтому вызывающий код обязан иметь
+ * собственное имя на замену.
+ */
+function filenameFromDisposition(header: string | null): string | undefined {
+  if (!header) return undefined;
+  const utf8 = /filename\*=UTF-8''([^;]+)/i.exec(header);
+  if (utf8) {
+    try {
+      return decodeURIComponent(utf8[1]);
+    } catch {
+      /* кривая кодировка — попробуем обычный filename */
+    }
+  }
+  const plain = /filename="?([^";]+)"?/i.exec(header);
+  return plain ? plain[1] : undefined;
+}
+
+/**
+ * Скачать файл (выгрузки аналитики).
+ *
+ * Отдельно от `request()`: тот разбирает ответ как JSON или текст, а тут нужен
+ * бинарный `Blob`. Простой ссылкой `<a href>` обойтись нельзя — `/admin/**`
+ * требует Bearer-токен, а заголовки к переходу по ссылке не приложить.
+ *
+ * Таймаут больше обычного: отчёт за большой период бэкенд формирует несколько
+ * секунд, и стандартные 15 с рвали бы выгрузку на ровном месте.
+ */
+export async function requestFile(
+  path: string,
+  options: RequestOptions = {},
+): Promise<FileResponse> {
+  const { query, timeoutMs = 60000, headers, ...init } = options;
+
+  const url = new URL(
+    path.startsWith("http") ? path : apiUrl(path),
+    typeof window !== "undefined" ? window.location.origin : "http://localhost",
+  );
+  if (query) {
+    for (const [k, v] of Object.entries(query)) {
+      if (v === undefined) continue;
+      url.searchParams.set(k, String(v));
+    }
+  }
+
+  const finalHeaders = new Headers(headers);
+  if (adminToken && path.startsWith("/admin")) {
+    finalHeaders.set("Authorization", `Bearer ${adminToken}`);
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), {
+      ...init,
+      headers: finalHeaders,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new ApiError(0, null, "Request timeout");
+    }
+    throw err;
+  }
+  clearTimeout(timeoutId);
+
+  if (!response.ok) {
+    // Ошибку бэкенд отдаёт JSON'ом (напр. 503 «нет шрифта для PDF») — читаем
+    // её как JSON, чтобы `errorMessage` показал администратору причину.
+    const body: unknown = await response.json().catch(() => null);
+    throw new ApiError(response.status, body);
+  }
+
+  return {
+    blob: await response.blob(),
+    filename: filenameFromDisposition(response.headers.get("content-disposition")),
+  };
+}
+
 /** Постраничный ответ бэкенда: `{ items, total, limit, offset }`. */
 export interface Paged<T> {
   items: T[];
