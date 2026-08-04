@@ -257,6 +257,17 @@ export const handlers = [
     return HttpResponse.json(exhibitsMock(from, to, order, limit));
   }),
 
+  // Выгрузку файлов мок не подделывает: .xlsx это zip, и собрать валидный
+  // файл в браузере ради демо не стоит труда. Отвечаем тем же 503, что бэкенд
+  // отдаёт при недоступной выгрузке, — кнопка покажет причину вместо тишины.
+  http.get("*/admin/analytics/export", async () => {
+    await delay(NETWORK_DELAY_MS);
+    return HttpResponse.json(
+      { detail: "Выгрузка отчётов недоступна в демо-режиме: файлы формирует бэкенд." },
+      { status: 503 },
+    );
+  }),
+
   http.get("*/admin/analytics/recognition", async ({ request }) => {
     await delay(NETWORK_DELAY_MS);
     const { from, to } = analyticsRange(request.url);

@@ -17,7 +17,7 @@ import type {
   AnalyticsUnanswered,
   AnalyticsUnansweredItem,
 } from "@/lib/types";
-import { request } from "./client";
+import { request, requestFile } from "./client";
 
 /**
  * Чтение отчётов админ-аналитики (`GET /admin/analytics/*`).
@@ -366,6 +366,66 @@ export async function getAnalyticsExhibits(
       }),
     ),
   };
+}
+
+// ============================
+// Выгрузка отчётов
+// ============================
+
+/** Отчёты, которые бэкенд умеет отдавать файлом. */
+export type AnalyticsExportReport =
+  | "overview"
+  | "questions"
+  | "unanswered"
+  | "exhibits"
+  | "routes"
+  | "recognition";
+
+export type AnalyticsExportFormat = "xlsx" | "pdf";
+
+/** Имя файла на случай, если CORS не отдал `Content-Disposition`. */
+function fallbackFileName(
+  report: AnalyticsExportReport,
+  range: AnalyticsRange,
+  format: AnalyticsExportFormat,
+): string {
+  const parts = [range.from, range.to].filter(Boolean);
+  const period = parts.length > 0 ? `-${parts.join("-")}` : "-all";
+  return `faberge-${report}${period}.${format}`;
+}
+
+/**
+ * Скачать отчёт файлом.
+ *
+ * Возвращает имя сохранённого файла — вызывающий код показывает его в
+ * подтверждении. Сам клик по невидимой ссылке и освобождение `objectURL`
+ * делаются здесь: забытый `revokeObjectURL` держит файл в памяти вкладки до
+ * её закрытия, а выгрузок за сессию может быть много.
+ */
+export async function downloadAnalyticsReport(
+  report: AnalyticsExportReport,
+  format: AnalyticsExportFormat,
+  range: AnalyticsRange,
+): Promise<string> {
+  const file = await requestFile("/admin/analytics/export", {
+    query: { report, format, ...rangeQuery(range) },
+  });
+  const name = file.filename ?? fallbackFileName(report, range, format);
+
+  const url = URL.createObjectURL(file.blob);
+  try {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } finally {
+    // Отзываем не сразу: Safari успевает начать скачивание не всегда, если
+    // ссылку убить в том же кадре.
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  }
+  return name;
 }
 
 export async function getAnalyticsRecognition(
