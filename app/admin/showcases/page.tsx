@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Plus } from "lucide-react";
-import type { Showcase, ShowcaseInput } from "@/lib/types";
+import type { Hall, Showcase, ShowcaseInput } from "@/lib/types";
 import { useHalls } from "@/lib/api/hooks";
 import {
   useAllShowcases,
@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/admin-hooks";
 import { errorMessage } from "@/lib/utils";
 import { hallLabel, showcaseLabel } from "@/lib/admin/labels";
+import { plural } from "@/lib/admin/format";
 import { byShowcaseNumber } from "@/lib/labels";
 import { groupByHall } from "@/lib/admin/grouping";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,28 @@ import { DataTable, type Column } from "@/components/admin/data-table";
 import { AccordionSection } from "@/components/admin/accordion-section";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { ShowcaseForm } from "@/components/admin/showcase-form";
+
+/**
+ * Текст подтверждения удаления витрины.
+ *
+ * Бэкенд отвечает 409 на непустую витрину, пока не передан `?force=true`.
+ * Каскад мы не шлём: он уносит экспонаты вместе с фотографиями, а отменить это
+ * нечем — поэтому диалог не обещает каскад, а объясняет, что удалить нельзя.
+ */
+function DeleteShowcaseDescription({ showcase, hall }: { showcase: Showcase | null; hall?: Hall }) {
+  if (!showcase) return null;
+  const exhibits = showcase.exhibitCount ?? 0;
+  const where = `${showcaseLabel(showcase)} (${hallLabel(hall)})`;
+  if (exhibits > 0) {
+    return (
+      <>
+        В витрине {exhibits} {plural(exhibits, "экспонат", "экспоната", "экспонатов")}. Удалить
+        такую витрину нельзя — сначала перенесите экспонаты в другую витрину или удалите их.
+      </>
+    );
+  }
+  return <>{where} будет удалена безвозвратно. Экспонатов в ней нет.</>;
+}
 
 export default function ShowcasesAdminPage() {
   // Со служебными: витрина может лежать в служебном зале, и без него строка
@@ -138,11 +161,12 @@ export default function ShowcasesAdminPage() {
         onOpenChange={(open) => !open && setDeleting(null)}
         title="Удалить витрину?"
         description={
-          <>
-            {showcaseLabel(deleting)} ({hallLabel(halls.find((h) => h.id === deleting?.hallId))}) и
-            все её экспонаты будут удалены безвозвратно.
-          </>
+          <DeleteShowcaseDescription
+            showcase={deleting}
+            hall={halls.find((h) => h.id === deleting?.hallId)}
+          />
         }
+        confirmDisabled={(deleting?.exhibitCount ?? 0) > 0}
         loading={deleteMut.isPending}
         error={deleteMut.error ? errorMessage(deleteMut.error) : null}
         onConfirm={handleDelete}
