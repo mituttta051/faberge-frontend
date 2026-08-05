@@ -10,6 +10,12 @@ interface ConfirmDialogProps {
   title: string;
   description?: React.ReactNode;
   confirmLabel?: string;
+  /**
+   * Действие невозможно (например, зал с витринами бэкенд удалять отказывается).
+   * Кнопку показываем, но выключаем: спрятать её — значит оставить диалог без
+   * объяснения, почему удалить нельзя.
+   */
+  confirmDisabled?: boolean;
   loading?: boolean;
   error?: string | null;
   onConfirm: () => void;
@@ -22,6 +28,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel = "Удалить",
+  confirmDisabled,
   loading,
   error,
   onConfirm,
@@ -39,6 +46,7 @@ export function ConfirmDialog({
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             onClick={onConfirm}
             loading={loading}
+            disabled={confirmDisabled}
           >
             {confirmLabel}
           </Button>

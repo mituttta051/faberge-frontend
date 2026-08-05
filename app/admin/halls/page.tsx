@@ -13,6 +13,7 @@ import {
 } from "@/lib/api/admin-hooks";
 import { errorMessage } from "@/lib/utils";
 import { hallLabel } from "@/lib/admin/labels";
+import { plural } from "@/lib/admin/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -55,6 +56,55 @@ const columns: Column<Hall>[] = [
     cell: (h) => <span className="text-muted-foreground line-clamp-2">{h.description ?? "—"}</span>,
   },
 ];
+
+/**
+ * Зал с витринами бэкенд удалять отказывается: `DELETE /admin/halls/{id}`
+ * отвечает 409, пока не передан `?force=true`. Каскад мы намеренно не шлём —
+ * одним кликом он уносит витрины, экспонаты и их фотографии, а отменить это
+ * нечем. Поэтому диалог не обещает каскад, а объясняет, что удалить нельзя.
+ */
+function hasShowcases(hall: Hall | null): boolean {
+  return (hall?.showcaseCount ?? 0) > 0;
+}
+
+/**
+ * Текст подтверждения удаления зала.
+ *
+ * Три разных случая, и раньше все три описывались одной фразой про каскад:
+ * витрины — отказ бэкенда; экспонаты без витрин — молчаливое удаление вместе с
+ * залом (409 бэкенд даёт только по витринам, экспонаты уходят по каскаду БД);
+ * пустой зал — обычное подтверждение.
+ */
+function DeleteHallDescription({ hall }: { hall: Hall | null }) {
+  if (!hall) return null;
+  const showcases = hall.showcaseCount ?? 0;
+  const exhibits = hall.exhibitCount ?? 0;
+
+  if (showcases > 0) {
+    return (
+      <>
+        В зале {showcases} {plural(showcases, "витрина", "витрины", "витрин")}
+        {exhibits > 0 && (
+          <>
+            {" "}
+            и {exhibits} {plural(exhibits, "экспонат", "экспоната", "экспонатов")}
+          </>
+        )}
+        . Удалить такой зал нельзя — сначала перенесите или удалите его витрины.
+      </>
+    );
+  }
+  if (exhibits > 0) {
+    return (
+      <>
+        {hallLabel(hall)} будет удалён безвозвратно вместе с {exhibits}{" "}
+        {plural(exhibits, "экспонатом", "экспонатами", "экспонатами")}: витрин в зале нет, экспонаты
+        привязаны к нему напрямую.
+      </>
+    );
+  }
+  return <>{hallLabel(hall)} будет удалён безвозвратно. Витрин и экспонатов в нём нет.</>;
+}
 
 export default function HallsAdminPage() {
   // includeService: служебные залы не отдаются публично, но управлять ими нужно
@@ -189,9 +239,8 @@ export default function HallsAdminPage() {
         open={!!deleting}
         onOpenChange={(open) => !open && setDeleting(null)}
         title="Удалить зал?"
-        description={
-          <>{hallLabel(deleting)} и все его витрины и экспонаты будут удалены безвозвратно.</>
-        }
+        description={<DeleteHallDescription hall={deleting} />}
+        confirmDisabled={hasShowcases(deleting)}
         loading={deleteMut.isPending}
         error={deleteMut.error ? errorMessage(deleteMut.error) : null}
         onConfirm={handleDelete}
