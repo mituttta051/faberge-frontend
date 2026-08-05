@@ -27,6 +27,7 @@ export function HallForm({ initial, hallId, onSubmit, onCancel, loading, error }
   const [description, setDescription] = React.useState(initial?.description ?? "");
   const [coverImageUrl, setCoverImageUrl] = React.useState(initial?.coverImageUrl ?? "");
   const [isService, setIsService] = React.useState(initial?.isService ?? false);
+  const [isTemporary, setIsTemporary] = React.useState(initial?.isTemporary ?? false);
   // Отложенный файл обложки для режима создания (зал ещё без id).
   const [pendingCover, setPendingCover] = React.useState<File | null>(null);
   const [pendingPreview, setPendingPreview] = React.useState<string | null>(null);
@@ -65,6 +66,7 @@ export function HallForm({ initial, hallId, onSubmit, onCancel, loading, error }
         description: description.trim() || undefined,
         coverImageUrl: coverImageUrl.trim() || undefined,
         isService,
+        isTemporary,
       },
       pendingCover ?? undefined,
     );
@@ -115,6 +117,22 @@ export function HallForm({ initial, hallId, onSubmit, onCancel, loading, error }
           <span className="text-muted-foreground text-[11px]">
             Зал останется в панели, но исчезнет из каталога для посетителей и из ответов AI-гида.
             Так убирают из экспозиции Парадную лестницу, не удаляя её описание.
+          </span>
+        </span>
+      </label>
+
+      <label className="flex items-start gap-2">
+        <input
+          type="checkbox"
+          className="mt-0.5"
+          checked={isTemporary}
+          onChange={(e) => setIsTemporary(e.target.checked)}
+        />
+        <span className="flex flex-col gap-0.5">
+          <span className="text-xs">Временная выставка</span>
+          <span className="text-muted-foreground text-[11px]">
+            Зал уходит из основной экспозиции в отдельный список «Временная выставка» на главном
+            экране и получает бейдж. Постоянные залы посетитель при этом видит без него.
           </span>
         </span>
       </label>

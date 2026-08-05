@@ -54,6 +54,7 @@ function hallWire(h: MockHall) {
     description: h.description ?? h.shortDescription,
     cover_image_url: h.coverImageUrl ?? null,
     is_service: h.isService ?? false,
+    is_temporary: h.isTemporary ?? false,
     showcase_count: showcases.filter((s) => s.hallId === h.id).length,
     exhibit_count: exhibits.filter((e) => e.hallId === h.id).length,
   };
@@ -165,6 +166,7 @@ interface WireHallBody {
   description?: string | null;
   cover_image_url?: string | null;
   is_service?: boolean | null;
+  is_temporary?: boolean | null;
 }
 interface WireShowcaseBody {
   hall_id?: number;
@@ -377,6 +379,7 @@ export const handlers = [
       description: body.description ?? undefined,
       coverImageUrl: body.cover_image_url ?? undefined,
       isService: body.is_service ?? false,
+      isTemporary: body.is_temporary ?? false,
     };
     halls.push(hall);
     return HttpResponse.json(hallWire(hall), { status: 201 });
@@ -389,6 +392,7 @@ export const handlers = [
     const body = (await request.json().catch(() => ({}))) as WireHallBody;
     if (body.hall_number !== undefined) hall.hallNumber = body.hall_number ?? undefined;
     if (body.is_service !== undefined) hall.isService = body.is_service ?? false;
+    if (body.is_temporary !== undefined) hall.isTemporary = body.is_temporary ?? false;
     if (body.name !== undefined) hall.name = body.name ?? "";
     if (body.description !== undefined) {
       hall.description = body.description ?? undefined;
@@ -706,12 +710,5 @@ export const handlers = [
       characters: 250,
       cached: false,
     });
-  }),
-
-  // Телеметрия: в демо-режиме события никуда не уходят, но обработчик нужен —
-  // без него MSW пропустил бы запрос в реальный бэкенд и засорил аналитику.
-  http.post("*/telemetry/events", async ({ request }) => {
-    const body = (await request.json()) as { events?: unknown[] };
-    return HttpResponse.json({ accepted: body.events?.length ?? 0 }, { status: 202 });
   }),
 ];
