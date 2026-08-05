@@ -15,6 +15,8 @@ export interface MockHall {
    * `include_service=true` (бэкенд так отдаёт с 29.07.2026).
    */
   isService?: boolean;
+  /** Зал временной выставки: отдельный список на главном экране и бейдж. */
+  isTemporary?: boolean;
 }
 
 export const halls: MockHall[] = [
@@ -92,6 +94,10 @@ export const halls: MockHall[] = [
     description:
       "Камнерезные миниатюры из уральских самоцветов, живопись русских мастеров XIX века.",
     coverImageUrl: "https://placehold.co/800x500/e5e2dc/0a0a0a?text=Exhibition+Hall",
+    // Как на проде: именно этот зал помечен временной выставкой. Без единого
+    // такого зала вкладка «Временная выставка» на демо-стенде всегда пустая,
+    // и фильтр каталога нечем проверить.
+    isTemporary: true,
   },
   {
     id: 9,

@@ -125,10 +125,11 @@ function hallToWire(input: HallInput) {
     name: input.name ?? null,
     description: input.description ?? null,
     cover_image_url: input.coverImageUrl ?? null,
-    // Форма всегда присылает актуальное состояние переключателя, поэтому шлём
-    // булево, а не пропускаем поле: иначе снять отметку «служебный» было бы
-    // нечем — PATCH меняет только переданные поля.
+    // Форма всегда присылает актуальное состояние переключателей, поэтому шлём
+    // булево, а не пропускаем поле: иначе снять отметку «служебный» или
+    // «временная выставка» было бы нечем — PATCH меняет только переданные поля.
     is_service: input.isService ?? false,
+    is_temporary: input.isTemporary ?? false,
   };
 }
 

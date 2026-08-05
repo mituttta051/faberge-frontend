@@ -29,8 +29,11 @@ const columns: Column<Hall>[] = [
       <span className="flex items-center gap-2">
         {hallLabel(h)}
         {/* Служебный зал виден только здесь — без пометки не отличить от обычного,
-            и админ не поймёт, почему зала нет в приложении. */}
+            и админ не поймёт, почему зала нет в приложении. То же и с временной
+            выставкой: посетитель видит её в отдельном списке, а в панели без
+            бейджа непонятно, почему зал не в основной экспозиции. */}
         {h.isService && <Badge>Служебный</Badge>}
+        {h.isTemporary && <Badge>Временная</Badge>}
       </span>
     ),
   },
@@ -167,7 +170,11 @@ export default function HallsAdminPage() {
         onReorder={handleReorder}
       />
 
-      <Modal open={formOpen} onOpenChange={setFormOpen} title={editing ? "Редактировать зал" : "Новый зал"}>
+      <Modal
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        title={editing ? "Редактировать зал" : "Новый зал"}
+      >
         <HallForm
           initial={editing}
           hallId={editing?.id}
@@ -183,9 +190,7 @@ export default function HallsAdminPage() {
         onOpenChange={(open) => !open && setDeleting(null)}
         title="Удалить зал?"
         description={
-          <>
-            {hallLabel(deleting)} и все его витрины и экспонаты будут удалены безвозвратно.
-          </>
+          <>{hallLabel(deleting)} и все его витрины и экспонаты будут удалены безвозвратно.</>
         }
         loading={deleteMut.isPending}
         error={deleteMut.error ? errorMessage(deleteMut.error) : null}
