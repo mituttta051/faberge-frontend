@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AudioButton } from "@/components/audio/audio-button";
+import { ChatEntryButton } from "@/components/chat/chat-entry-button";
 import { useExhibit, useRelatedExhibits } from "@/lib/api/hooks";
 import { markExhibitSource, useTrackView } from "@/lib/telemetry";
 
@@ -30,7 +31,11 @@ export function ExhibitView({ exhibitId }: { exhibitId: number }) {
 
   return (
     <Screen>
-      <AppBar onBack={safeBack} title={exhibit?.name ?? "Экспонат"} />
+      <AppBar
+        onBack={safeBack}
+        title={exhibit?.name ?? "Экспонат"}
+        right={<ChatEntryButton />}
+      />
       <main className="flex flex-1 flex-col gap-6">
         {isLoading && (
           <>

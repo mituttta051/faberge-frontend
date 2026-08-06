@@ -2,9 +2,11 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Sparkles } from "lucide-react";
+import { RotateCcw, Sparkles } from "lucide-react";
 import { Screen } from "@/components/ui/screen";
 import { AppBar } from "@/components/ui/app-bar";
+import { IconButton } from "@/components/ui/icon-button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { ChatThread } from "@/components/chat/chat-thread";
 import { AudioButton } from "@/components/audio/audio-button";
@@ -18,9 +20,11 @@ import {
 } from "@/lib/api/hooks";
 import { getExhibit, getExhibitBySlug } from "@/lib/api/endpoints";
 import { useChatStore } from "@/lib/store/chat-store";
+import { compressImage } from "@/lib/image";
 import { useSafeBack } from "@/lib/hooks/use-safe-back";
 import { RelatedRecommendations } from "@/components/chat/related-recommendations";
 import { hallTitle } from "@/lib/labels";
+import { errorMessage } from "@/lib/utils";
 import { track } from "@/lib/telemetry";
 import type { ChatContext, ChatExhibitCard, ChatExhibitRef, Exhibit } from "@/lib/types";
 
@@ -226,7 +230,15 @@ function ChatContent() {
   const handleAttachPhoto = async (file: File) => {
     const store = useChatStore.getState();
     store.getOrCreate();
-    const previewUrl = URL.createObjectURL(file);
+    // Снимок с телефона — это 3–6 МБ, а API Gateway режет запрос на 3.5 МБ и
+    // отвечает без CORS-заголовков: браузер видит «Failed to fetch», и вместо
+    // распознавания в чат падала ошибка (баг-репорт 06.08.2026). Экран
+    // сканирования не ломался, потому что берёт кадр из canvas.
+    // Превью тоже рисуем по сжатому файлу — держать в памяти оригинал незачем.
+    // Не смогли декодировать (экзотический формат) — отправляем как есть:
+    // решение об отказе тогда за сервером, а не за нами.
+    const photo = await compressImage(file).catch(() => file);
+    const previewUrl = URL.createObjectURL(photo);
     store.addMessage({
       id: uid("photo"),
       role: "user",
@@ -236,7 +248,7 @@ function ChatContent() {
     });
 
     try {
-      const res = await recognize.mutateAsync(file);
+      const res = await recognize.mutateAsync(photo);
       if (res.recognized && res.exhibit) {
         const ex = res.exhibit;
         const st = useChatStore.getState();
@@ -276,14 +288,25 @@ function ChatContent() {
           suggestions: names.length > 0 ? names : undefined,
         });
       }
-    } catch {
+    } catch (err) {
       useChatStore.getState().addMessage({
         id: uid("err"),
         role: "assistant",
-        content: "Не получилось обработать фото. Попробуйте ещё раз.",
+        // Причину показываем словами: «не дошло до сервера» и «сервер отказал» —
+        // это разные действия посетителя, а раньше оба выглядели одинаково.
+        content: errorMessage(err, "Не получилось обработать фото. Попробуйте ещё раз."),
         createdAt: new Date().toISOString(),
       });
     }
+  };
+
+  // Сброс треда — за подтверждением: переписка живёт только в браузере
+  // посетителя, восстановить её после случайного нажатия нечем.
+  const [resetOpen, setResetOpen] = useState(false);
+  const handleReset = () => {
+    useChatStore.getState().clear();
+    setInput("");
+    setResetOpen(false);
   };
 
   const busy = chat.isPending || story.isPending || recognize.isPending;
@@ -327,7 +350,23 @@ function ChatContent() {
 
   return (
     <Screen>
-      <AppBar onBack={safeBack} title="AI-гид" />
+      <AppBar
+        onBack={safeBack}
+        title="AI-гид"
+        right={
+          messages.length > 0 ? (
+            <IconButton
+              aria-label="Начать заново"
+              title="Начать заново"
+              variant="ghost"
+              size="md"
+              onClick={() => setResetOpen(true)}
+            >
+              <RotateCcw />
+            </IconButton>
+          ) : null
+        }
+      />
       {initializing ? (
         <main className="flex flex-1 flex-col items-center justify-center gap-3">
           <Spinner size="lg" />
@@ -354,6 +393,15 @@ function ChatContent() {
           }
         />
       )}
+
+      <ConfirmDialog
+        open={resetOpen}
+        onOpenChange={setResetOpen}
+        title="Начать диалог заново?"
+        description="Переписка с гидом сотрётся — она хранится только в этом браузере."
+        confirmLabel="Начать заново"
+        onConfirm={handleReset}
+      />
     </Screen>
   );
 }
