@@ -20,7 +20,7 @@ const errorMessages: Record<CameraError, string> = {
 };
 
 export function CameraCapture({ onCapture, className }: CameraCaptureProps) {
-  const { videoRef, ready, error, capture } = useCamera();
+  const { videoRef, ready, error, awaitingConsent, start, capture } = useCamera();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [capturing, setCapturing] = React.useState(false);
 
@@ -53,7 +53,23 @@ export function CameraCapture({ onCapture, className }: CameraCaptureProps) {
         )}
       />
 
-      {!ready && !error && (
+      {/* Разрешение спрашиваем по нажатию, а не при открытии экрана: системный
+          запрос, всплывающий сам, посетитель видит как «приложение опять
+          спрашивает» (баг-репорт 06.08.2026). Если доступ уже давали — сюда
+          не попадаем, камера включается сразу. */}
+      {!ready && !error && awaitingConsent && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center">
+          <CameraIcon className="h-12 w-12 opacity-70" />
+          <p className="max-w-xs text-sm opacity-90">
+            Наведите камеру на экспонат — и AI-гид расскажет, что это.
+          </p>
+          <Button leftIcon={<CameraIcon className="h-4 w-4" />} onClick={() => void start()}>
+            Включить камеру
+          </Button>
+        </div>
+      )}
+
+      {!ready && !error && !awaitingConsent && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
           <Spinner size="lg" />
           <p className="text-xs tracking-widest uppercase opacity-70">Включаем камеру…</p>

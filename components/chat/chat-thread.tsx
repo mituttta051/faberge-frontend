@@ -88,7 +88,12 @@ export function ChatThread({
           ))}
           {thinking && <ThinkingBubble />}
           {!thinking && suggestions && suggestions.length > 0 && (
-            <div className="mt-1 pl-11">
+            // pl-14, а не pl-11: 44px — это левый край пузыря гида (аватар 32 + gap 12),
+            // а текст ответа внутри пузыря сдвинут ещё на его px-3. С отступом по краю
+            // пузыря чипы вставали на 12px левее текста и «плыли» относительно ответа
+            // (баг-репорт 06.08.2026). Теперь текст ответа, кнопка озвучки и чипы
+            // начинаются на одной вертикали.
+            <div className="mt-1 pl-14">
               <PromptChips suggestions={suggestions} onSelect={onSubmit} />
             </div>
           )}

@@ -1,4 +1,4 @@
-import type { Hall, Showcase } from "@/lib/types";
+import type { Exhibit, Hall, Showcase } from "@/lib/types";
 
 /**
  * Наименования зала и витрины в публичной части приложения.
@@ -27,4 +27,32 @@ export function showcaseTitle(showcase: Pick<Showcase, "showcaseNumber">): strin
 /** Сортировка витрин: без номера — в конец списка, как в путеводителе. */
 export function byShowcaseNumber(a: Showcase, b: Showcase): number {
   return (a.showcaseNumber ?? Infinity) - (b.showcaseNumber ?? Infinity);
+}
+
+/**
+ * Номер экспоната числом — для сортировки. Без номера — в конец, как у витрин.
+ *
+ * `exhibitNumber` приходит строкой, поэтому сравнивать надо числа: строковый
+ * порядок поставил бы «10» перед «9».
+ */
+function exhibitOrder(exhibit: Pick<Exhibit, "exhibitNumber">): number {
+  const n = Number(exhibit.exhibitNumber);
+  return exhibit.exhibitNumber && Number.isFinite(n) ? n : Infinity;
+}
+
+/**
+ * Сортировка экспонатов по номеру путеводителя.
+ *
+ * Бэкенд отдаёт экспонаты в порядке `id` — витрина №2 Рыцарского зала приезжает
+ * как 6, 2, 8, 1, 3…, и посетитель не может сопоставить список с табличкой в зале.
+ */
+export function byExhibitNumber(
+  a: Pick<Exhibit, "exhibitNumber">,
+  b: Pick<Exhibit, "exhibitNumber">,
+): number {
+  const left = exhibitOrder(a);
+  const right = exhibitOrder(b);
+  // Равенство отдельной веткой: у двух записей без номера `Infinity - Infinity`
+  // дало бы NaN, а с таким компаратором порядок сортировки не определён.
+  return left === right ? 0 : left - right;
 }
