@@ -19,8 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Spinner } from "@/components/ui/spinner";
 import { DataTable, type Column } from "@/components/admin/data-table";
-import { AccordionSection } from "@/components/admin/accordion-section";
-import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { AccordionSection } from "@/components/ui/accordion-section";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ShowcaseForm } from "@/components/admin/showcase-form";
 
 /**

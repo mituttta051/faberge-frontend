@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { DataTable, type Column } from "@/components/admin/data-table";
-import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { HallForm } from "@/components/admin/hall-form";
 
 const columns: Column<Hall>[] = [
