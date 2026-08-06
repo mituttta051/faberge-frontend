@@ -302,17 +302,20 @@ export async function getHall(id: number): Promise<Hall> {
 }
 
 export async function getHallShowcases(hallId: number): Promise<Showcase[]> {
-  const res = await request<WirePaged<WireShowcase>>(`/halls/${hallId}/showcases`, {
-    query: { limit: 100 },
-  });
-  return res.items.map(mapShowcase);
+  const items = await fetchAllPaged<WireShowcase>(`/halls/${hallId}/showcases`);
+  return items.map(mapShowcase);
 }
 
+/**
+ * Все экспонаты зала, а не первая сотня.
+ *
+ * `limit` у бэкенда ограничен сотней, а в Аванзале 259 экспонатов, в Бежевом 215:
+ * одностраничный запрос молча обрезал список, и заказчик видел это как «часть
+ * витрин пустая, экспонаты не завели» (баг-репорт 06.08.2026).
+ */
 export async function getHallExhibits(hallId: number): Promise<Exhibit[]> {
-  const res = await request<WirePaged<WireExhibitSummary>>(`/halls/${hallId}/exhibits`, {
-    query: { limit: 100 },
-  });
-  return res.items.map(mapExhibitSummary);
+  const items = await fetchAllPaged<WireExhibitSummary>(`/halls/${hallId}/exhibits`);
+  return items.map(mapExhibitSummary);
 }
 
 export async function getShowcase(id: number): Promise<Showcase> {
@@ -321,10 +324,8 @@ export async function getShowcase(id: number): Promise<Showcase> {
 }
 
 export async function getShowcaseExhibits(id: number): Promise<Exhibit[]> {
-  const res = await request<WirePaged<WireExhibitSummary>>(`/showcases/${id}/exhibits`, {
-    query: { limit: 100 },
-  });
-  return res.items.map(mapExhibitSummary);
+  const items = await fetchAllPaged<WireExhibitSummary>(`/showcases/${id}/exhibits`);
+  return items.map(mapExhibitSummary);
 }
 
 export async function getExhibit(id: number): Promise<Exhibit> {
