@@ -1,20 +1,19 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useHallExhibits, useHallShowcases } from "@/lib/api/hooks";
-import { byShowcaseNumber, hallNumberCaption, hallTitle, showcaseTitle } from "@/lib/labels";
-import type { Exhibit, Hall, Showcase } from "@/lib/types";
-import { markExhibitSource } from "@/lib/telemetry";
+import { hallTitle } from "@/lib/labels";
+import type { Hall } from "@/lib/types";
 
 /**
  * Список залов выбранной экспозиции — сразу целиком, без промежуточного выбора.
- * Каждый зал раскрывается на месте: описание, витрины и их экспонаты видны, не
- * уводя посетителя на другой экран (баг-репорт 28.07.2026, «Главный экран», п.4).
+ *
+ * Карточка зала целиком — ссылка на страницу зала: раскрытие на месте заказчик
+ * попросил убрать, там дублировалось то же, что и на самой странице
+ * (баг-репорт 06.08.2026, «Список залов»). Заодно ушли по два запроса витрин
+ * и экспонатов на каждый раскрытый зал.
  */
 export function HallList({ halls, isLoading }: { halls?: Hall[]; isLoading?: boolean }) {
   if (isLoading) {
@@ -47,25 +46,11 @@ export function HallList({ halls, isLoading }: { halls?: Hall[]; isLoading?: boo
 }
 
 function HallRow({ hall }: { hall: Hall }) {
-  const [open, setOpen] = useState(false);
-  const title = hallTitle(hall);
-  const numberCaption = hallNumberCaption(hall);
-  // Витрины и экспонаты тянем только у раскрытого зала — иначе первый экран
-  // отправил бы по два запроса на каждый из десяти залов.
-  const { data: showcases, isLoading: showcasesLoading } = useHallShowcases(
-    open ? hall.id : undefined,
-  );
-  const { data: exhibits, isLoading: exhibitsLoading } = useHallExhibits(
-    open ? hall.id : undefined,
-  );
-
   return (
     <li className="border-border border-b">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className="hover:bg-muted flex w-full items-center gap-3 px-1 py-3 text-left transition-colors"
+      <Link
+        href={`/halls/${hall.id}`}
+        className="hover:bg-muted flex w-full items-center gap-3 px-1 py-3 transition-colors"
       >
         <div className="border-border relative h-14 w-20 shrink-0 overflow-hidden border">
           {hall.coverImageUrl && (
@@ -79,142 +64,19 @@ function HallRow({ hall }: { hall: Hall }) {
           )}
         </div>
         <div className="min-w-0 flex-1">
-          {(numberCaption || hall.isTemporary) && (
-            <p className="text-muted-foreground flex items-center gap-2 text-[10px] tracking-widest uppercase">
-              {numberCaption}
-              {hall.isTemporary && (
-                <span className="border-border border px-1.5 py-px tracking-normal normal-case">
-                  временная
-                </span>
-              )}
+          {/* Номер зала заказчик просил убрать — остаётся только название.
+              Пометка временной выставки не про нумерацию и остаётся. */}
+          {hall.isTemporary && (
+            <p className="text-muted-foreground text-[10px] tracking-widest uppercase">
+              <span className="border-border border px-1.5 py-px tracking-normal normal-case">
+                временная
+              </span>
             </p>
           )}
-          <p className="mt-0.5 truncate text-sm font-medium">{title}</p>
+          <p className="mt-0.5 truncate text-sm font-medium">{hallTitle(hall)}</p>
         </div>
-        <ChevronDown
-          className={cn(
-            "text-muted-foreground h-4 w-4 shrink-0 transition-transform duration-200",
-            open && "rotate-180",
-          )}
-        />
-      </button>
-
-      {open && (
-        <div className="flex flex-col gap-4 px-1 pb-4">
-          {hall.description && (
-            // Описания залов из каталога — на несколько экранов текста; в раскрытии
-            // показываем начало, полное — на странице зала.
-            <p className="text-muted-foreground line-clamp-4 text-sm leading-relaxed">
-              {hall.description}
-            </p>
-          )}
-
-          {showcasesLoading || exhibitsLoading ? (
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-3 w-24" />
-              <Skeleton className="h-3 w-full" />
-              <Skeleton className="h-3 w-2/3" />
-            </div>
-          ) : (
-            <HallShowcases showcases={showcases} exhibits={exhibits} />
-          )}
-
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href={`/halls/${hall.id}`}
-              className="border-border hover:bg-muted border px-3 py-2 text-xs tracking-widest uppercase transition-colors"
-            >
-              Открыть зал
-            </Link>
-            <Link
-              href={`/chat?hall=${hall.id}`}
-              className="border-border hover:bg-muted border px-3 py-2 text-xs tracking-widest uppercase transition-colors"
-            >
-              Спросить AI-гида
-            </Link>
-          </div>
-        </div>
-      )}
+        <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
+      </Link>
     </li>
-  );
-}
-
-function HallShowcases({ showcases, exhibits }: { showcases?: Showcase[]; exhibits?: Exhibit[] }) {
-  const items = exhibits ?? [];
-  const known = new Set((showcases ?? []).map((s) => s.id));
-  // Экспонаты вне витрин — в путеводителе это отдельная группа с пустым квадратом.
-  const loose = items.filter((e) => e.showcaseId === undefined || !known.has(e.showcaseId));
-  const hasUnnumberedShowcase = (showcases ?? []).some((s) => s.showcaseNumber == null);
-
-  if (!showcases?.length && !items.length) {
-    return <p className="text-muted-foreground text-xs">Состав зала пока не заполнен.</p>;
-  }
-
-  return (
-    <div className="flex flex-col gap-3">
-      {[...(showcases ?? [])].sort(byShowcaseNumber).map((s) => (
-        <ShowcaseGroup
-          key={s.id}
-          title={showcaseTitle(s)}
-          subtitle={s.name}
-          items={items.filter((e) => e.showcaseId === s.id)}
-        />
-      ))}
-      {/* Экспонаты, не привязанные ни к одной витрине. Когда у зала есть витрина
-          без номера, «не в витринах» уже пришло от бэкенда — второй раз не рисуем. */}
-      {loose.length > 0 && !hasUnnumberedShowcase && (
-        <ShowcaseGroup title="Не в витринах" items={loose} />
-      )}
-    </div>
-  );
-}
-
-function ShowcaseGroup({
-  title,
-  subtitle,
-  items,
-}: {
-  title: string;
-  subtitle?: string;
-  items: Exhibit[];
-}) {
-  return (
-    <div className="border-border border-l pl-3">
-      <p className="text-muted-foreground text-[10px] tracking-widest uppercase">
-        {title}
-        {/* У витрины без номера название часто совпадает с заголовком группы —
-            «Не в витринах · Не в витринах» читается как ошибка. */}
-        {subtitle && subtitle !== title && (
-          <span className="tracking-normal normal-case"> · {subtitle}</span>
-        )}
-      </p>
-      {items.length === 0 ? (
-        <p className="text-muted-foreground mt-1 text-xs">Экспонаты не заполнены.</p>
-      ) : (
-        <ul className="mt-1 flex flex-col">
-          {items.map((e) => (
-            <li key={e.id}>
-              <Link
-                href={`/exhibits/${e.id}`}
-                onClick={() => markExhibitSource("hall")}
-                className="hover:bg-muted -mx-2 flex items-baseline gap-2 px-2 py-1.5 text-sm"
-              >
-                {e.exhibitNumber && (
-                  <span className="text-muted-foreground font-mono text-xs tabular-nums">
-                    {e.exhibitNumber}
-                  </span>
-                )}
-                <span className="min-w-0 flex-1">
-                  {e.name}
-                  {e.yearCreated && (
-                    <span className="text-muted-foreground"> · {e.yearCreated}</span>
-                  )}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
   );
 }

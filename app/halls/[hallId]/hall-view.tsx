@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { Screen } from "@/components/ui/screen";
 import { AppBar } from "@/components/ui/app-bar";
@@ -7,9 +8,19 @@ import { useSafeBack } from "@/lib/hooks/use-safe-back";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AccordionSection } from "@/components/ui/accordion-section";
+import { AudioButton } from "@/components/audio/audio-button";
+import { ChatEntryButton } from "@/components/chat/chat-entry-button";
 import { useHall, useHallShowcases, useHallExhibits } from "@/lib/api/hooks";
-import { markExhibitSource, useTrackView } from "@/lib/telemetry";
-import { byShowcaseNumber, hallNumberCaption, hallTitle, showcaseTitle } from "@/lib/labels";
+import { markExhibitSource, track, useTrackView } from "@/lib/telemetry";
+import {
+  byExhibitNumber,
+  byShowcaseNumber,
+  hallNumberCaption,
+  hallTitle,
+  showcaseTitle,
+} from "@/lib/labels";
+import type { Exhibit, Showcase } from "@/lib/types";
 
 export function HallView({ hallId }: { hallId: number }) {
   const safeBack = useSafeBack();
@@ -20,9 +31,25 @@ export function HallView({ hallId }: { hallId: number }) {
   const { data: showcases } = useHallShowcases(hallId);
   const { data: exhibits } = useHallExhibits(hallId);
 
+  const items = React.useMemo(() => exhibits ?? [], [exhibits]);
+  // Экспонаты, не привязанные ни к одной витрине зала. Когда у зала есть витрина
+  // без номера, «не в витринах» уже пришло от бэкенда — второй раз не рисуем.
+  const loose = React.useMemo(() => {
+    const known = new Set((showcases ?? []).map((s) => s.id));
+    const hasUnnumbered = (showcases ?? []).some((s) => s.showcaseNumber == null);
+    if (hasUnnumbered) return [];
+    return items
+      .filter((e) => e.showcaseId === undefined || !known.has(e.showcaseId))
+      .sort(byExhibitNumber);
+  }, [items, showcases]);
+
   return (
     <Screen>
-      <AppBar onBack={safeBack} title={hall ? hallTitle(hall) : "Зал"} />
+      <AppBar
+        onBack={safeBack}
+        title={hall ? hallTitle(hall) : "Зал"}
+        right={<ChatEntryButton />}
+      />
       <main className="flex flex-1 flex-col gap-6 px-6 py-6">
         {hallLoading && (
           <>
@@ -48,6 +75,19 @@ export function HallView({ hallId }: { hallId: number }) {
               )}
             </div>
 
+            {/* Озвучка описания зала: `POST /speech` принимает произвольный текст,
+                отдельной ручки под зал не нужно. Ключ — чтобы зал и экспонат не
+                заиграли одновременно: стор аудио держит один активный источник. */}
+            {hall.description && (
+              <div className="flex">
+                <AudioButton
+                  audioKey={`hall_${hall.id}`}
+                  text={hall.description}
+                  variant="labeled"
+                />
+              </div>
+            )}
+
             <Link href={`/chat?hall=${hall.id}`} className="block">
               <Button variant="accent" fullWidth>
                 Спросить AI-гида о зале
@@ -58,64 +98,97 @@ export function HallView({ hallId }: { hallId: number }) {
               <h2 className="text-muted-foreground text-xs tracking-widest uppercase">
                 Витрины ({showcases?.length ?? 0})
               </h2>
-              <ul className="mt-3 flex flex-col gap-2">
+              {/* Витрины раскрываются на месте: сплошной список экспонатов зала
+                  заказчик просил заменить составом каждой витрины
+                  (баг-репорт 06.08.2026, «Окно зала»). */}
+              <div className="border-border mt-3 border">
                 {[...(showcases ?? [])].sort(byShowcaseNumber).map((s) => (
-                  <li key={s.id}>
-                    <Link
-                      href={`/showcases/${s.id}`}
-                      className="border-border hover:bg-muted block border p-3 transition-colors"
-                    >
-                      <p className="text-muted-foreground text-xs">{showcaseTitle(s)}</p>
-                      <p className="mt-1 text-sm">{s.name ?? "Без названия"}</p>
-                    </Link>
-                  </li>
+                  <ShowcaseSection
+                    key={s.id}
+                    showcase={s}
+                    hallId={hall.id}
+                    items={items.filter((e) => e.showcaseId === s.id).sort(byExhibitNumber)}
+                  />
                 ))}
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="text-muted-foreground text-xs tracking-widest uppercase">
-                Экспонаты зала ({exhibits?.length ?? 0})
-              </h2>
-              <ul className="mt-3 flex flex-col gap-1">
-                {exhibits?.map((e) => {
-                  // Номер витрины приходит прямо в списке — джойн с выборкой
-                  // витрин здесь больше не нужен.
-                  const num = e.showcaseNumber;
-                  return (
-                    <li key={e.id}>
-                      <Link
-                        href={`/exhibits/${e.id}`}
-                        onClick={() => markExhibitSource("hall")}
-                        className="hover:bg-muted -mx-2 flex items-baseline gap-2 px-2 py-2 text-sm"
-                      >
-                        {/* Номер экспоната по путеводителю; номер витрины — отдельной
-                            подписью справа, иначе две разные нумерации сливаются. */}
-                        {e.exhibitNumber && (
-                          <span className="text-muted-foreground font-mono text-xs tabular-nums">
-                            {e.exhibitNumber}
-                          </span>
-                        )}
-                        <span className="min-w-0 flex-1">
-                          {e.name}
-                          {e.yearCreated && (
-                            <span className="text-muted-foreground"> · {e.yearCreated}</span>
-                          )}
-                        </span>
-                        {num !== undefined && (
-                          <span className="text-muted-foreground shrink-0 text-xs">
-                            витрина {num}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+                {loose.length > 0 && (
+                  <AccordionSection title="Не в витринах" meta={loose.length}>
+                    <ExhibitList items={loose} />
+                  </AccordionSection>
+                )}
+              </div>
             </section>
           </>
         )}
       </main>
     </Screen>
+  );
+}
+
+function ShowcaseSection({
+  showcase,
+  hallId,
+  items,
+}: {
+  showcase: Showcase;
+  hallId: number;
+  items: Exhibit[];
+}) {
+  // Просмотр витрины считаем один раз за визит на страницу: посетитель может
+  // складывать и раскладывать секцию сколько угодно, отчёт от этого не должен
+  // раздуваться.
+  const tracked = React.useRef(false);
+
+  return (
+    <AccordionSection
+      title={showcaseTitle(showcase)}
+      meta={items.length}
+      onOpen={() => {
+        if (tracked.current) return;
+        tracked.current = true;
+        track({ type: "showcase_view", showcaseId: showcase.id, hallId });
+      }}
+    >
+      <ExhibitList items={items} />
+      <div className="px-3 pt-1 pb-3">
+        <Link
+          href={`/showcases/${showcase.id}`}
+          className="text-muted-foreground hover:text-foreground text-xs tracking-widest uppercase transition-colors"
+        >
+          Открыть витрину
+        </Link>
+      </div>
+    </AccordionSection>
+  );
+}
+
+function ExhibitList({ items }: { items: Exhibit[] }) {
+  if (items.length === 0) {
+    return <p className="text-muted-foreground px-3 py-3 text-xs">Экспонаты не заполнены.</p>;
+  }
+
+  return (
+    <ul className="flex flex-col py-1">
+      {items.map((e) => (
+        <li key={e.id}>
+          <Link
+            href={`/exhibits/${e.id}`}
+            onClick={() => markExhibitSource("hall")}
+            className="hover:bg-muted flex items-baseline gap-2 px-3 py-2 text-sm"
+          >
+            {/* Номер экспоната по путеводителю — по нему посетитель сверяется
+                с табличкой в витрине. */}
+            {e.exhibitNumber && (
+              <span className="text-muted-foreground font-mono text-xs tabular-nums">
+                {e.exhibitNumber}
+              </span>
+            )}
+            <span className="min-w-0 flex-1">
+              {e.name}
+              {e.yearCreated && <span className="text-muted-foreground"> · {e.yearCreated}</span>}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
