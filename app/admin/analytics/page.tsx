@@ -104,9 +104,12 @@ function AnalyticsPageInner() {
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <DateRangeFilter value={range} onChange={setRange} />
-        {/* Общий экспорт дашборда — это сводка: она и есть «дашборд одним
-            файлом», у остальных отчётов кнопки стоят у своих таблиц. */}
-        <ExportButtons report="overview" range={range} />
+        {/* Весь дашборд одним файлом: лист на раздел в .xlsx, раздел на отчёт
+            в .pdf. Раньше здесь стоял экспорт сводки, и чтобы собрать отчёт
+            целиком, приходилось нажимать шесть кнопок и склеивать шесть файлов
+            (баг-репорт 06.08.2026). Кнопки у таблиц остаются: они выгружают
+            свой раздел. */}
+        <ExportButtons report="all" range={range} label="Весь отчёт" />
       </div>
 
       {noData ? (
@@ -141,6 +144,7 @@ function AnalyticsPageInner() {
               label="Средний визит"
               value={formatDuration(engagement.data?.avgDurationSec)}
               hint={`медиана ${formatDuration(engagement.data?.medianDurationSec)}`}
+              about="Среднее время одного посещения — от первого действия до последнего, по всему приложению целиком. Если посетитель не трогал приложение дольше 30 минут, всё, что он сделает потом, считается уже новым визитом."
               loading={engagement.isLoading}
             />
             <StatTile
@@ -159,12 +163,14 @@ function AnalyticsPageInner() {
               label="Конверсия в диалог"
               value={formatShare(engagement.data?.chatConversionRate)}
               hint={`${formatCount(engagement.data?.sessionsWithChat)} визитов из ${formatCount(engagement.data?.sessionsWithAppOpen)}`}
+              about="Доля визитов, в которых посетитель открыл чат с гидом, от всех визитов, где приложение запускалось."
               loading={engagement.isLoading}
             />
             <StatTile
               label="Глубина визита"
               value={formatDecimal(engagement.data?.avgExhibitsPerSession)}
               hint="экспонатов за визит"
+              about="Среднее число разных экспонатов, открытых за один визит; повторные открытия того же экспоната не считаются."
               loading={engagement.isLoading}
             />
           </div>
@@ -180,6 +186,10 @@ function AnalyticsPageInner() {
             loading={engagement.isLoading}
             error={engagement.error}
             empty={(engagement.data?.totalVisits ?? 0) === 0}
+            // Именно этот отчёт считает плитки «Средний визит», «Конверсия
+            // в диалог» и «Глубина визита» — единственная секция, которая
+            // оставалась без выгрузки.
+            action={<ExportButtons report="engagement" range={range} />}
           >
             <div className="grid gap-6 lg:grid-cols-2">
               <BarList

@@ -15,6 +15,13 @@ interface ExportButtonsProps {
   report: AnalyticsExportReport;
   /** Тот же период, что показан на экране: выгрузка не должна расходиться с таблицей. */
   range: AnalyticsRange;
+  /**
+   * Подпись перед кнопками.
+   *
+   * У отчёта в своей секции понятно, что скачивается; общей кнопке наверху
+   * без подписи ничего не сообщает, что это весь дашборд, а не сводка.
+   */
+  label?: string;
   className?: string;
 }
 
@@ -34,7 +41,7 @@ const FORMATS: { format: AnalyticsExportFormat; label: string }[] = [
  * бэкенд отвечает 503, если на сервере нет шрифта с кириллицей, и молчаливое
  * бездействие кнопки выглядело бы поломкой панели.
  */
-export function ExportButtons({ report, range, className }: ExportButtonsProps) {
+export function ExportButtons({ report, range, label, className }: ExportButtonsProps) {
   const [busy, setBusy] = React.useState<AnalyticsExportFormat | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -56,18 +63,25 @@ export function ExportButtons({ report, range, className }: ExportButtonsProps) 
   return (
     <div className={cn("flex flex-col items-end gap-1", className)}>
       <div className="flex items-center gap-2">
-        {FORMATS.map(({ format, label }) => (
+        {label && (
+          <span className="text-muted-foreground text-xs tracking-widest uppercase">{label}</span>
+        )}
+        {FORMATS.map(({ format, label: formatLabel }) => (
           <button
             key={format}
             type="button"
             onClick={() => download(format)}
             disabled={busy !== null}
             aria-busy={busy === format}
-            title={`Скачать отчёт в формате ${label}`}
+            title={
+              label
+                ? `${label}: скачать в формате ${formatLabel}`
+                : `Скачать отчёт в формате ${formatLabel}`
+            }
             className="border-border hover:bg-muted flex items-center gap-1.5 border px-3 py-1.5 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy === format ? <Spinner size="sm" /> : <Download className="h-3.5 w-3.5" />}
-            {label}
+            {formatLabel}
           </button>
         ))}
       </div>

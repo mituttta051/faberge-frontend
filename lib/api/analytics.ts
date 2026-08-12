@@ -372,14 +372,21 @@ export async function getAnalyticsExhibits(
 // Выгрузка отчётов
 // ============================
 
-/** Отчёты, которые бэкенд умеет отдавать файлом. */
+/**
+ * Отчёты, которые бэкенд умеет отдавать файлом.
+ *
+ * `all` — все разделы одним файлом: лист на отчёт в .xlsx, раздел на отчёт
+ * в .pdf. Заказчик просил не собирать дашборд из шести скачанных файлов.
+ */
 export type AnalyticsExportReport =
   | "overview"
   | "questions"
   | "unanswered"
+  | "engagement"
   | "exhibits"
   | "routes"
-  | "recognition";
+  | "recognition"
+  | "all";
 
 export type AnalyticsExportFormat = "xlsx" | "pdf";
 
@@ -391,7 +398,10 @@ function fallbackFileName(
 ): string {
   const parts = [range.from, range.to].filter(Boolean);
   const period = parts.length > 0 ? `-${parts.join("-")}` : "-all";
-  return `faberge-${report}${period}.${format}`;
+  // Общий отчёт бэкенд называет faberge-analytics-…, а не faberge-all-…:
+  // повторяем, чтобы имя не зависело от того, дошёл ли Content-Disposition.
+  const slug = report === "all" ? "analytics" : report;
+  return `faberge-${slug}${period}.${format}`;
 }
 
 /**
