@@ -39,10 +39,14 @@ export interface TelemetryEvent {
   /**
    * Детали события. Бэкенд хранит только ключи из белого списка своего типа
    * события (`app_open`: entry/qr_id; `exhibit_view`: source; `recognition`:
-   * recognized/confidence/fallback/candidates_count; `chat_message` и
+   * recognized/confidence/fallback/candidates_count/retry; `chat_message` и
    * `search_query`: text/results_count; `session_end`: reason/last_screen) —
    * всё остальное отбрасывается на приёме. Персональных данных здесь быть не
    * должно: ни UA, ни referrer, ни полного URL с query.
+   *
+   * `retry` у `recognition` — повторная съёмка после неудачной попытки. Знать
+   * это точно может только фронт; без него бэкенд восстанавливал бы признак
+   * эвристикой по порядку событий.
    */
   props?: Record<string, unknown>;
 }

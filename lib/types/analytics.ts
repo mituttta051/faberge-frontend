@@ -4,7 +4,7 @@
  * Зеркало схем бэкенда (`AnalyticsOverview`, `AnalyticsQuestions`,
  * `AnalyticsUnanswered`, `AnalyticsEngagement`, `AnalyticsRoutes`,
  * `AnalyticsExhibits`, `AnalyticsRecognition`), приведённое к camelCase.
- * Сверено с `app/schemas.py` на коммите 809cfb7 от 03.08.2026.
+ * Сверено с `app/schemas.py` на коммите 9fe6153 от 05.08.2026.
  *
  * Необязательными помечены только те поля, которых у сущности может не быть по
  * смыслу (имя зала, номер зала у экспоната). Числовые метрики бэкенд отдаёт
@@ -90,9 +90,12 @@ export interface AnalyticsEngagement extends AnalyticsPeriod {
   /** Визитов хотя бы с одним `chat_message`. */
   sessionsWithQuestions: number;
   /**
-   * Знаменатель конверсий. Пока фронт не шлёт `app_open`, бэкенд берёт все
-   * визиты — поэтому число показываем рядом с конверсией, иначе непонятно,
-   * от чего она посчитана.
+   * Знаменатель конверсий — визитов с `app_open`. Фронт это событие шлёт
+   * (`ensureAppOpen` в `lib/telemetry/tracker.ts`, с переоткрытием после
+   * таймаута визита), но у бэкенда остался фолбэк на все визиты, если
+   * `app_open` нет ни одного, — он срабатывает на данных, накопленных до
+   * того, как событие начали слать. Поэтому число показываем рядом с
+   * конверсией: иначе непонятно, от чего она посчитана.
    */
   sessionsWithAppOpen: number;
   chatConversionRate: number;
