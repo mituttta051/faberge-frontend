@@ -111,7 +111,11 @@ export function HallView({ hallId }: { hallId: number }) {
                   />
                 ))}
                 {loose.length > 0 && (
-                  <AccordionSection title="Не в витринах" meta={loose.length}>
+                  <AccordionSection
+                    title="Не в витринах"
+                    meta={loose.length}
+                    persistKey={`hall_${hall.id}_loose`}
+                  >
                     <ExhibitList items={loose} />
                   </AccordionSection>
                 )}
@@ -135,13 +139,15 @@ function ShowcaseSection({
 }) {
   // Просмотр витрины считаем один раз за визит на страницу: посетитель может
   // складывать и раскладывать секцию сколько угодно, отчёт от этого не должен
-  // раздуваться.
+  // раздуваться. Восстановление открытой секции после возврата с карточки — это
+  // новый визит и новый показ состава, оно тоже считается (как в useTrackView).
   const tracked = React.useRef(false);
 
   return (
     <AccordionSection
       title={showcaseTitle(showcase)}
       meta={items.length}
+      persistKey={`showcase_${showcase.id}`}
       onOpen={() => {
         if (tracked.current) return;
         tracked.current = true;
