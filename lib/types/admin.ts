@@ -38,7 +38,8 @@ export interface ExhibitInput {
   hallId?: number;
   labelSlug?: string;
   name: string;
-  yearCreated?: number;
+  /** Датировка строкой, как в путеводителе: «1899–1903», «конец XIX века». */
+  yearCreated?: string;
   masterName?: string;
   material?: string;
   shortDescription?: string;

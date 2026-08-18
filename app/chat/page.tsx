@@ -319,7 +319,7 @@ function ChatContent() {
       : lastAssistant?.suggestions;
 
   const headerContext = contextExhibit
-    ? { label: contextExhibit.name, hint: contextExhibit.yearCreated?.toString() }
+    ? { label: contextExhibit.name, hint: contextExhibit.yearCreated }
     : contextHall
       ? {
           label: hallTitle(contextHall),

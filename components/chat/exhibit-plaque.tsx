@@ -11,7 +11,7 @@ interface Props {
 
 /** Мини-карточка распознанного экспоната внутри assistant-сообщения. */
 export function ExhibitPlaque({ exhibit }: Props) {
-  const meta = [exhibit.masterName, exhibit.yearCreated?.toString()].filter(Boolean).join(" · ");
+  const meta = [exhibit.masterName, exhibit.yearCreated].filter(Boolean).join(" · ");
   return (
     <Link
       href={`/exhibits/${exhibit.id}`}

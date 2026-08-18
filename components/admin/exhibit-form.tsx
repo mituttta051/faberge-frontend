@@ -35,7 +35,7 @@ export function ExhibitForm({
   const [hallId, setHallId] = React.useState(String(initial?.hallId ?? halls[0]?.id ?? ""));
   const [showcaseId, setShowcaseId] = React.useState(String(initial?.showcaseId ?? ""));
   const [labelSlug, setLabelSlug] = React.useState(initial?.labelSlug ?? "");
-  const [yearCreated, setYearCreated] = React.useState(String(initial?.yearCreated ?? ""));
+  const [yearCreated, setYearCreated] = React.useState(initial?.yearCreated ?? "");
   const [masterName, setMasterName] = React.useState(initial?.masterName ?? "");
   const [material, setMaterial] = React.useState(initial?.material ?? "");
   const [shortDescription, setShortDescription] = React.useState(initial?.shortDescription ?? "");
@@ -62,7 +62,7 @@ export function ExhibitForm({
       hallId: hallId ? Number(hallId) : undefined,
       showcaseId: showcaseId ? Number(showcaseId) : undefined,
       labelSlug: labelSlug.trim() || undefined,
-      yearCreated: yearCreated ? Number(yearCreated) : undefined,
+      yearCreated: yearCreated.trim() || undefined,
       masterName: masterName.trim() || undefined,
       material: material.trim() || undefined,
       shortDescription: shortDescription.trim() || undefined,
@@ -105,10 +105,8 @@ export function ExhibitForm({
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Год создания">
+        <Field label="Датировка" hint="как в путеводителе: «1899–1903», «конец XIX века»">
           <Input
-            type="number"
-            inputMode="numeric"
             value={yearCreated}
             onChange={(e) => setYearCreated(e.target.value)}
           />

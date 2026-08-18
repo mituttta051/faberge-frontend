@@ -30,7 +30,7 @@ export interface ChatExhibitCard {
   id: number;
   name: string;
   photoUrl?: string;
-  yearCreated?: number;
+  yearCreated?: string;
   masterName?: string;
 }
 

@@ -16,7 +16,8 @@ export interface Exhibit {
   labelSlug?: string;
   /** Название экспоната */
   name: string;
-  yearCreated?: number;
+  /** Датировка строкой, как в путеводителе: «1899–1903», «конец XIX века». До 17.08.2026 — число. */
+  yearCreated?: string;
   masterName?: string;
   /** Материалы (горный хрусталь, эмаль и т.п.) */
   material?: string;

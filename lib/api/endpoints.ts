@@ -60,7 +60,7 @@ interface WireExhibitSummary {
   exhibit_number?: string | null;
   label_slug?: string | null;
   name: string;
-  year_created?: number | null;
+  year_created?: string | null;
   master_name?: string | null;
   thumbnail_url?: string | null;
   hall_id?: number | null;
@@ -75,7 +75,7 @@ interface WireExhibit {
   exhibit_number?: string | null;
   label_slug?: string | null;
   name: string;
-  year_created?: number | null;
+  year_created?: string | null;
   master_name?: string | null;
   material?: string | null;
   short_description?: string | null;

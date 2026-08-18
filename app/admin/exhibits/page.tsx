@@ -84,7 +84,7 @@ export default function ExhibitsAdminPage() {
       ),
     },
     {
-      header: "Год",
+      header: "Датировка",
       hideOnMobile: true,
       cell: (e) => <span className="tabular-nums">{e.yearCreated ?? "—"}</span>,
     },

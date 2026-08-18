@@ -13,7 +13,7 @@ export interface MockExhibit {
   hallId: number;
   labelSlug: string;
   name: string;
-  yearCreated?: number;
+  yearCreated?: string;
   masterName?: string;
   material?: string;
   shortDescription: string;
@@ -31,7 +31,7 @@ export const exhibits: MockExhibit[] = [
     hallId: 4,
     labelSlug: "faberge_egg_rosebud",
     name: "Яйцо «Бутон розы»",
-    yearCreated: 1895,
+    yearCreated: "1895",
     masterName: "Михаил Перхин",
     material: "Золото, эмаль, бриллианты, рубины",
     shortDescription:
@@ -46,7 +46,7 @@ export const exhibits: MockExhibit[] = [
     hallId: 4,
     labelSlug: "faberge_egg_lily_of_the_valley",
     name: "Яйцо «Ландыши»",
-    yearCreated: 1898,
+    yearCreated: "1898",
     masterName: "Михаил Перхин",
     material: "Золото, эмаль, жемчуг, бриллианты",
     shortDescription:
@@ -61,7 +61,7 @@ export const exhibits: MockExhibit[] = [
     hallId: 4,
     labelSlug: "faberge_egg_coronation",
     name: "Яйцо «Коронационное»",
-    yearCreated: 1897,
+    yearCreated: "1897",
     masterName: "Михаил Перхин, Генрих Вигстрём",
     material: "Золото, эмаль, бриллианты, горный хрусталь",
     shortDescription: "Подарено в честь коронации Николая II 1896 года.",
@@ -75,7 +75,7 @@ export const exhibits: MockExhibit[] = [
     hallId: 4,
     labelSlug: "faberge_egg_renaissance",
     name: "Яйцо «Ренессанс»",
-    yearCreated: 1894,
+    yearCreated: "1894",
     masterName: "Михаил Перхин",
     material: "Молочный агат, золото, эмаль, бриллианты, рубины",
     shortDescription: "Последний пасхальный подарок Александра III императрице Марии Фёдоровне.",
@@ -89,7 +89,7 @@ export const exhibits: MockExhibit[] = [
     hallId: 4,
     labelSlug: "faberge_egg_hen",
     name: "Яйцо «Курочка»",
-    yearCreated: 1885,
+    yearCreated: "1885",
     masterName: "Эрик Коллин",
     material: "Золото, эмаль, рубин",
     shortDescription:
@@ -108,7 +108,7 @@ export const exhibits: MockExhibit[] = [
     hallId: 5,
     labelSlug: "faberge_pansy_basket",
     name: "Корзина с анютиными глазками",
-    yearCreated: 1896,
+    yearCreated: "1896",
     masterName: "Август Хольмстрём",
     material: "Серебро, золото, эмаль, аметисты, бриллианты",
     shortDescription: "Подарок Николая II императрице Александре Фёдоровне.",
@@ -126,7 +126,7 @@ export const exhibits: MockExhibit[] = [
     hallId: 6,
     labelSlug: "faberge_chanticleer_clock",
     name: "Часы «Шантеклер»",
-    yearCreated: 1903,
+    yearCreated: "1903",
     masterName: "Михаил Перхин",
     material: "Серебро, золото, эмаль, жемчуг",
     shortDescription: "Уникальные часы с механической фигурой петуха, поющего каждый час.",
@@ -144,7 +144,7 @@ export const exhibits: MockExhibit[] = [
     hallId: 9,
     labelSlug: "icon_virgin_kazan",
     name: "Икона Казанской Божией Матери",
-    yearCreated: 1700,
+    yearCreated: "начало XVIII века",
     material: "Дерево, темпера, оклад серебро",
     shortDescription: "Русская икона начала XVIII века в серебряном окладе.",
     photoUrl: "https://placehold.co/800x800/3a2c1a/ffffff?text=Icon+Kazan",
@@ -160,7 +160,7 @@ export const exhibits: MockExhibit[] = [
     hallId: 2,
     labelSlug: "ceremonial_sabre_19c",
     name: "Парадная сабля офицера гвардии",
-    yearCreated: 1850,
+    yearCreated: "середина XIX века",
     material: "Сталь, золото, эмаль",
     shortDescription: "Парадное холодное оружие середины XIX века.",
     photoUrl: "https://placehold.co/800x800/e5e2dc/0a0a0a?text=Sabre",
