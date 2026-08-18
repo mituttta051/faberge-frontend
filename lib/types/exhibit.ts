@@ -21,6 +21,8 @@ export interface Exhibit {
   masterName?: string;
   /** Материалы (горный хрусталь, эмаль и т.п.) */
   material?: string;
+  /** Техники исполнения (литье, чеканка и т.п.) — отдельное поле с 13.08.2026. */
+  techniques?: string;
   /** Краткое описание для карточки */
   shortDescription?: string;
   /** Главное фото (для карточки — image_url, для summary — thumbnail_url). */

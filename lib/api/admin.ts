@@ -38,13 +38,19 @@ interface WireShowcase {
 
 interface WireAdminExhibit {
   id: number;
+  // Списки (/exhibits) отдают плоские showcase_id/hall_id, детальная карточка
+  // (/admin/exhibits/{id}) — вложенные объекты. Поддерживаем оба варианта.
   showcase_id?: number | null;
   hall_id?: number | null;
+  hall?: { id: number } | null;
+  showcase?: { id: number } | null;
   label_slug?: string | null;
+  exhibit_number?: string | null;
   name: string;
   year_created?: string | null;
   master_name?: string | null;
   material?: string | null;
+  techniques?: string | null;
   short_description?: string | null;
   image_url?: string | null;
   raw_history?: string | null;
@@ -105,13 +111,15 @@ function mapShowcase(s: WireShowcase): Showcase {
 function mapAdminExhibit(e: WireAdminExhibit): AdminExhibit {
   return {
     id: e.id,
-    showcaseId: e.showcase_id ?? undefined,
-    hallId: e.hall_id ?? undefined,
+    showcaseId: e.showcase_id ?? e.showcase?.id ?? undefined,
+    hallId: e.hall_id ?? e.hall?.id ?? undefined,
     labelSlug: e.label_slug ?? undefined,
+    exhibitNumber: e.exhibit_number ?? undefined,
     name: e.name,
     yearCreated: e.year_created ?? undefined,
     masterName: e.master_name ?? undefined,
     material: e.material ?? undefined,
+    techniques: e.techniques ?? undefined,
     shortDescription: e.short_description ?? undefined,
     photoUrl: e.image_url ?? undefined,
     rawHistory: e.raw_history ?? undefined,
@@ -146,10 +154,12 @@ function exhibitToWire(input: ExhibitInput) {
     showcase_id: input.showcaseId ?? null,
     hall_id: input.hallId ?? null,
     label_slug: input.labelSlug ?? null,
+    exhibit_number: input.exhibitNumber ?? null,
     name: input.name,
     year_created: input.yearCreated ?? null,
     master_name: input.masterName ?? null,
     material: input.material ?? null,
+    techniques: input.techniques ?? null,
     short_description: input.shortDescription ?? null,
     image_url: input.photoUrl ?? null,
     raw_history: input.rawHistory ?? null,
@@ -166,6 +176,15 @@ export async function getAllShowcases(): Promise<Showcase[]> {
 
 export async function getAllExhibits(): Promise<AdminExhibit[]> {
   return (await fetchAllPaged<WireAdminExhibit>("/exhibits")).map(mapAdminExhibit);
+}
+
+/**
+ * Полная карточка для формы редактирования. Список выше — публичный summary
+ * без material/short_description/raw_history: если инициализировать форму
+ * строкой списка, сохранение затрёт эти поля null'ами.
+ */
+export async function getAdminExhibit(id: number): Promise<AdminExhibit> {
+  return mapAdminExhibit(await request<WireAdminExhibit>(`/admin/exhibits/${id}`));
 }
 
 // ============================

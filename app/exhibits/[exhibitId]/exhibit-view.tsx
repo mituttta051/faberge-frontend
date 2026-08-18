@@ -73,6 +73,11 @@ export function ExhibitView({ exhibitId }: { exhibitId: number }) {
                   <span className="font-medium">Материалы:</span> {exhibit.material}
                 </p>
               )}
+              {exhibit.techniques && (
+                <p className="text-muted-foreground text-xs">
+                  <span className="font-medium">Техники:</span> {exhibit.techniques}
+                </p>
+              )}
               {exhibit.shortDescription && (
                 <p className="text-sm leading-relaxed">
                   {stripTrailingEllipsis(exhibit.shortDescription)}

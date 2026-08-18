@@ -37,11 +37,15 @@ export interface ExhibitInput {
   showcaseId?: number;
   hallId?: number;
   labelSlug?: string;
+  /** Номер экспоната в витрине по путеводителю («1», «12а»). */
+  exhibitNumber?: string;
   name: string;
   /** Датировка строкой, как в путеводителе: «1899–1903», «конец XIX века». */
   yearCreated?: string;
   masterName?: string;
   material?: string;
+  /** Техники исполнения — отдельным полем, не внутри материалов. */
+  techniques?: string;
   shortDescription?: string;
   photoUrl?: string;
   /** Факты для LLM — не отдаётся в публичном API, но редактируется в админке. */

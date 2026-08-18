@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import type { AdminExhibit, ExhibitInput } from "@/lib/types";
 import { useHalls } from "@/lib/api/hooks";
 import {
+  useAdminExhibit,
   useAllExhibits,
   useAllShowcases,
   useCreateExhibit,
@@ -32,8 +33,12 @@ export default function ExhibitsAdminPage() {
   const deleteMut = useDeleteExhibit();
 
   const [formOpen, setFormOpen] = React.useState(false);
-  const [editing, setEditing] = React.useState<AdminExhibit | null>(null);
+  // Держим только id: строка списка усечённая (без материалов/описания/raw_history),
+  // полную карточку для формы тянем отдельным запросом — иначе сохранение
+  // затёрло бы отсутствующие в списке поля.
+  const [editingId, setEditingId] = React.useState<number | null>(null);
   const [deleting, setDeleting] = React.useState<AdminExhibit | null>(null);
+  const { data: editingExhibit } = useAdminExhibit(editingId ?? undefined);
 
   const showcaseById = React.useMemo(() => new Map(showcases.map((s) => [s.id, s])), [showcases]);
 
@@ -92,26 +97,26 @@ export default function ExhibitsAdminPage() {
   ];
 
   function openCreate() {
-    setEditing(null);
+    setEditingId(null);
     createMut.reset();
     updateMut.reset();
     setFormOpen(true);
   }
 
   function openEdit(exhibit: AdminExhibit) {
-    setEditing(exhibit);
+    setEditingId(exhibit.id);
     createMut.reset();
     updateMut.reset();
     setFormOpen(true);
   }
 
   function handleSubmit(input: ExhibitInput) {
-    if (editing) {
-      updateMut.mutate({ id: editing.id, input }, { onSuccess: () => setFormOpen(false) });
+    if (editingId !== null) {
+      updateMut.mutate({ id: editingId, input }, { onSuccess: () => setFormOpen(false) });
     } else {
       // Бесшовно: после создания переходим в режим редактирования того же
       // экспоната (не закрывая модалку), чтобы сразу стала доступна загрузка фото.
-      createMut.mutate(input, { onSuccess: (created) => setEditing(created) });
+      createMut.mutate(input, { onSuccess: (created) => setEditingId(created.id) });
     }
   }
 
@@ -165,19 +170,28 @@ export default function ExhibitsAdminPage() {
       <Modal
         open={formOpen}
         onOpenChange={setFormOpen}
-        title={editing ? "Редактировать экспонат" : "Новый экспонат"}
+        title={editingId !== null ? "Редактировать экспонат" : "Новый экспонат"}
         className="max-w-lg"
       >
-        <ExhibitForm
-          initial={editing}
-          exhibitId={editing?.id}
-          halls={halls}
-          showcases={showcases}
-          onSubmit={handleSubmit}
-          onCancel={() => setFormOpen(false)}
-          loading={saving}
-          error={saveError ? errorMessage(saveError) : null}
-        />
+        {editingId !== null && !editingExhibit ? (
+          // Ждём полную карточку: форма, открытая на усечённых данных списка,
+          // показала бы пустые поля и затёрла их при сохранении.
+          <div className="flex items-center justify-center py-16">
+            <Spinner size="lg" />
+          </div>
+        ) : (
+          <ExhibitForm
+            key={editingId ?? "new"}
+            initial={editingExhibit ?? null}
+            exhibitId={editingId ?? undefined}
+            halls={halls}
+            showcases={showcases}
+            onSubmit={handleSubmit}
+            onCancel={() => setFormOpen(false)}
+            loading={saving}
+            error={saveError ? errorMessage(saveError) : null}
+          />
+        )}
       </Modal>
 
       <ConfirmDialog

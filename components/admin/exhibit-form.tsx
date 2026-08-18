@@ -35,9 +35,11 @@ export function ExhibitForm({
   const [hallId, setHallId] = React.useState(String(initial?.hallId ?? halls[0]?.id ?? ""));
   const [showcaseId, setShowcaseId] = React.useState(String(initial?.showcaseId ?? ""));
   const [labelSlug, setLabelSlug] = React.useState(initial?.labelSlug ?? "");
+  const [exhibitNumber, setExhibitNumber] = React.useState(initial?.exhibitNumber ?? "");
   const [yearCreated, setYearCreated] = React.useState(initial?.yearCreated ?? "");
   const [masterName, setMasterName] = React.useState(initial?.masterName ?? "");
   const [material, setMaterial] = React.useState(initial?.material ?? "");
+  const [techniques, setTechniques] = React.useState(initial?.techniques ?? "");
   const [shortDescription, setShortDescription] = React.useState(initial?.shortDescription ?? "");
   const [photoUrl, setPhotoUrl] = React.useState(initial?.photoUrl ?? "");
   const [rawHistory, setRawHistory] = React.useState(initial?.rawHistory ?? "");
@@ -62,9 +64,11 @@ export function ExhibitForm({
       hallId: hallId ? Number(hallId) : undefined,
       showcaseId: showcaseId ? Number(showcaseId) : undefined,
       labelSlug: labelSlug.trim() || undefined,
+      exhibitNumber: exhibitNumber.trim() || undefined,
       yearCreated: yearCreated.trim() || undefined,
       masterName: masterName.trim() || undefined,
       material: material.trim() || undefined,
+      techniques: techniques.trim() || undefined,
       shortDescription: shortDescription.trim() || undefined,
       photoUrl: photoUrl.trim() || undefined,
       rawHistory: rawHistory.trim() || undefined,
@@ -105,22 +109,29 @@ export function ExhibitForm({
       </div>
 
       <div className="grid grid-cols-2 gap-3">
+        <Field label="№ по путеводителю" hint="номер в витрине: «1», «12а»">
+          <Input value={exhibitNumber} onChange={(e) => setExhibitNumber(e.target.value)} />
+        </Field>
         <Field label="Датировка" hint="как в путеводителе: «1899–1903», «конец XIX века»">
           <Input
             value={yearCreated}
             onChange={(e) => setYearCreated(e.target.value)}
           />
         </Field>
-        <Field label="Label slug (YOLO)" hint="напр. faberge_egg_winter">
-          <Input value={labelSlug} onChange={(e) => setLabelSlug(e.target.value)} />
-        </Field>
       </div>
 
-      <Field label="Мастер">
+      <Field label="Label slug (YOLO)" hint="напр. faberge_egg_winter">
+        <Input value={labelSlug} onChange={(e) => setLabelSlug(e.target.value)} />
+      </Field>
+
+      <Field label="Мастер" hint="как в путеводителе: «Фирма К. Фаберже, мастер Ю. Раппопорт»">
         <Input value={masterName} onChange={(e) => setMasterName(e.target.value)} />
       </Field>
       <Field label="Материалы">
         <Input value={material} onChange={(e) => setMaterial(e.target.value)} />
+      </Field>
+      <Field label="Техники" hint="литье, чеканка, гравировка… — отдельно от материалов">
+        <Input value={techniques} onChange={(e) => setTechniques(e.target.value)} />
       </Field>
       <Field label="Краткое описание">
         <Textarea

@@ -10,6 +10,7 @@ import {
   deleteExhibitMedia,
   deleteHall,
   deleteShowcase,
+  getAdminExhibit,
   getAllExhibits,
   getAllShowcases,
   listExhibitMedia,
@@ -31,6 +32,15 @@ export function useAllShowcases() {
 
 export function useAllExhibits() {
   return useQuery({ queryKey: ["admin", "exhibits"], queryFn: getAllExhibits });
+}
+
+/** Полная карточка для формы редактирования (список отдаёт усечённый summary). */
+export function useAdminExhibit(id: number | undefined) {
+  return useQuery({
+    queryKey: ["admin", "exhibit", id],
+    queryFn: () => getAdminExhibit(id!),
+    enabled: id !== undefined,
+  });
 }
 
 /**

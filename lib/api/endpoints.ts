@@ -78,6 +78,7 @@ interface WireExhibit {
   year_created?: string | null;
   master_name?: string | null;
   material?: string | null;
+  techniques?: string | null;
   short_description?: string | null;
   image_url?: string | null;
   model_3d_url?: string | null;
@@ -230,6 +231,7 @@ function mapExhibit(e: WireExhibit): Exhibit {
     yearCreated: e.year_created ?? undefined,
     masterName: e.master_name ?? undefined,
     material: e.material ?? undefined,
+    techniques: e.techniques ?? undefined,
     shortDescription: e.short_description ?? undefined,
     photoUrl: e.image_url ?? undefined,
     model3dUrl: e.model_3d_url ?? undefined,
