@@ -23,7 +23,8 @@ export function showcaseLabel(showcase?: Showcase | null): string {
   if (!showcase) return "Без витрины";
   const base =
     showcase.showcaseNumber != null ? `Витрина ${showcase.showcaseNumber}` : "Не в витринах";
-  return showcase.name ? base + SEP + showcase.name : base;
+  // Группы без номера в базе так и называются «Не в витринах» — не дублируем.
+  return showcase.name && showcase.name !== base ? base + SEP + showcase.name : base;
 }
 
 /**
