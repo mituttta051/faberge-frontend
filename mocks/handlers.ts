@@ -46,12 +46,31 @@ function paged<T>(items: T[], url: URL) {
 // Мапперы mock → wire (snake_case как в OpenAPI)
 // ============================
 
+/**
+ * Видимая часть описания зала — как `shorten_to_sentence` на бэкенде: режем по
+ * границе предложения, а не по символу (I-3 фидбэка 31.08.2026).
+ */
+function descriptionPreview(text: string | undefined, limit = 240): string | null {
+  if (!text) return null;
+  const body = text.trim();
+  if (body.length <= limit) return body;
+  const cut = body.slice(0, limit);
+  const stop = Math.max(cut.lastIndexOf("."), cut.lastIndexOf("!"), cut.lastIndexOf("?"));
+  // Слишком ранняя граница — обрезка вышла бы огрызком: тогда режем по слову.
+  if (stop > limit * 0.4) return body.slice(0, stop + 1);
+  return cut.slice(0, cut.lastIndexOf(" ")).trimEnd() + "…";
+}
+
 function hallWire(h: MockHall) {
+  const description = h.description ?? h.shortDescription;
+  const preview = descriptionPreview(description);
   return {
     id: h.id,
     hall_number: h.hallNumber,
     name: h.name,
-    description: h.description ?? h.shortDescription,
+    description,
+    description_preview: preview,
+    description_has_more: preview !== null && preview !== description?.trim(),
     cover_image_url: h.coverImageUrl ?? null,
     is_service: h.isService ?? false,
     is_temporary: h.isTemporary ?? false,
@@ -75,7 +94,7 @@ function showcaseWire(s: (typeof showcases)[number]) {
 }
 
 function showcaseBriefWire(s: (typeof showcases)[number]) {
-  return { id: s.id, showcase_number: s.showcaseNumber };
+  return { id: s.id, showcase_number: s.showcaseNumber, name: s.name ?? null };
 }
 
 function exhibitSummaryWire(e: MockExhibit) {
@@ -119,6 +138,50 @@ function guideLocationWire(e: MockExhibit) {
   };
 }
 
+/**
+ * Расположение готовой строкой + структурой — контракт `ExhibitLocation` с
+ * 31.08.2026. Формулировка ровно как в `app/services/location.py`: «Зал 4
+ * «Синяя гостиная», витрина 5», без «№», витрина без номера — «вне витрин».
+ */
+function exhibitLocationWire(e: MockExhibit) {
+  const hall = halls.find((h) => h.id === e.hallId);
+  const showcase = showcases.find((s) => s.id === e.showcaseId);
+  const name = hall?.name ? ` «${hall.name}»` : "";
+  const hallPart = hall
+    ? hall.hallNumber != null
+      ? `зал ${hall.hallNumber}${name}`
+      : `зал${name}`
+    : null;
+  const showcasePart =
+    showcase?.showcaseNumber != null ? `витрина ${showcase.showcaseNumber}` : "вне витрин";
+  const text = hallPart ? `${hallPart}, ${showcasePart}` : showcasePart;
+  return {
+    hall_id: hall?.id ?? null,
+    hall_number: hall?.hallNumber ?? null,
+    hall_name: hall?.name ?? null,
+    showcase_id: showcase?.id ?? null,
+    showcase_number: showcase?.showcaseNumber ?? null,
+    showcase_name: showcase?.name ?? null,
+    text: hall ? text[0].toUpperCase() + text.slice(1) : null,
+    text_in: hallPart ? `в ${hallPart.replace(/^зал/, "зале")}, ${showcasePart}` : null,
+  };
+}
+
+/**
+ * «Фирма и мастер»: `text` — дословный `master_name`, части — его разбор по
+ * первому разделителю перед словом-маркером («, мастер …»). Не разобралось —
+ * обе части null, текст на месте.
+ */
+function exhibitMakerWire(e: MockExhibit) {
+  const text = e.masterName?.trim() || null;
+  if (!text) return { text: null, firm: null, master: null };
+  const match = text.match(/^(.+?),\s+((?:мастер|мастерская)\s+.+)$/i);
+  if (!match || !/^(фирма|фабрика|мастерская|артель)/i.test(match[1])) {
+    return { text, firm: null, master: null };
+  }
+  return { text, firm: match[1].trim(), master: match[2].trim() };
+}
+
 function exhibitWire(e: MockExhibit) {
   const hall = halls.find((h) => h.id === e.hallId);
   const showcase = showcases.find((s) => s.id === e.showcaseId);
@@ -127,6 +190,9 @@ function exhibitWire(e: MockExhibit) {
     label_slug: e.labelSlug,
     name: e.name,
     year_created: e.yearCreated ?? null,
+    origin_place: e.originPlace ?? null,
+    location: exhibitLocationWire(e),
+    maker: exhibitMakerWire(e),
     master_name: e.masterName ?? null,
     material: e.material ?? null,
     short_description: e.shortDescription ?? null,

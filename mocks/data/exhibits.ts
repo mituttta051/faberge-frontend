@@ -14,6 +14,8 @@ export interface MockExhibit {
   labelSlug: string;
   name: string;
   yearCreated?: string;
+  /** Место создания — вторая половина «даты создания и места» (с 31.08.2026). */
+  originPlace?: string;
   masterName?: string;
   material?: string;
   shortDescription: string;
@@ -32,7 +34,8 @@ export const exhibits: MockExhibit[] = [
     labelSlug: "faberge_egg_rosebud",
     name: "Яйцо «Бутон розы»",
     yearCreated: "1895",
-    masterName: "Михаил Перхин",
+    originPlace: "Санкт-Петербург",
+    masterName: "Фирма К. Фаберже, мастер Михаил Перхин",
     material: "Золото, эмаль, бриллианты, рубины",
     shortDescription:
       "Первое императорское пасхальное яйцо Николая II — подарок супруге Александре Фёдоровне.",

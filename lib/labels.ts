@@ -19,6 +19,38 @@ export function hallTitle(hall: Pick<Hall, "name" | "hallNumber">): string {
   return hall.name ?? hallNumberCaption(hall) ?? "Зал";
 }
 
+/**
+ * Расположение экспоната одной строкой: «Зал 4 «Синяя гостиная», витрина 5».
+ *
+ * Заказчик просил, чтобы посетитель видел на карточке, куда идти: название и
+ * номер зала плюс номер витрины (фидбэк 31.08.2026, п. I-2).
+ *
+ * С 31.08.2026 ту же строку собирает бэкенд (`location.text`) — тем же кодом,
+ * которым ИИ-гид печатает «Найти его можно в зале 4…»: музей просил, чтобы про
+ * одно место не было двух формулировок. Пока обновлённый бэкенд не развёрнут,
+ * собираем строку здесь — ДОСЛОВНО в его формате (`app/services/location.py`:
+ * без «№», витрина без номера — «вне витрин»). Иначе в день деплоя у посетителя
+ * молча поменяется текст.
+ *
+ * Без зала строки нет вовсе: «витрина 5» сама по себе никуда не ведёт —
+ * витрины нумеруются внутри зала, и пятая есть почти в каждом.
+ */
+export function exhibitLocation(
+  exhibit: Pick<Exhibit, "locationText" | "hallNumber" | "hallName" | "showcaseNumber">,
+): string | null {
+  if (exhibit.locationText) return exhibit.locationText;
+
+  const name = exhibit.hallName ? ` «${exhibit.hallName}»` : "";
+  const hall =
+    exhibit.hallNumber != null ? `Зал ${exhibit.hallNumber}${name}` : name ? `Зал${name}` : null;
+  if (!hall) return null;
+  // Номера витрины нет — экспонат стоит в зале открыто. Молчать об этом нельзя:
+  // посетитель будет искать его по витринам и не найдёт.
+  const showcase =
+    exhibit.showcaseNumber != null ? `витрина ${exhibit.showcaseNumber}` : "вне витрин";
+  return `${hall}, ${showcase}`;
+}
+
 /** Заголовок витрины: «Витрина № 2», а без номера — группа «не в витринах». */
 export function showcaseTitle(showcase: Pick<Showcase, "showcaseNumber">): string {
   return showcase.showcaseNumber != null ? `Витрина № ${showcase.showcaseNumber}` : "Не в витринах";

@@ -10,6 +10,15 @@ export interface Hall {
   name?: string;
   /** Описание зала (для блока «Описание зала» и шапки) */
   description?: string;
+  /**
+   * Видимая часть описания — начало `description`, обрезанное по границе
+   * предложения (`description_preview`, с 31.08.2026). Полный текст остаётся в
+   * `description`; превью только добавлено. Пока прод не обновлён, поля нет — и
+   * `ExpandableText` обрезает текст сам, по строкам средствами CSS.
+   */
+  descriptionPreview?: string;
+  /** Есть ли что раскрывать кнопкой «Подробнее о зале» (`description_has_more`). */
+  descriptionHasMore?: boolean;
   /** Этаж/уровень в здании музея */
   level?: number;
   /** Заглавное фото зала */

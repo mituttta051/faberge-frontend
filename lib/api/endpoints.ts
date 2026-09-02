@@ -34,6 +34,10 @@ interface WireHall {
   sort_order?: number | null;
   showcase_count?: number | null;
   exhibit_count?: number | null;
+  // Превью описания зала (I-3 фидбэка 31.08.2026). На неразвёрнутом проде полей
+  // нет — их отсутствие и есть сигнал обрезать текст на клиенте.
+  description_preview?: string | null;
+  description_has_more?: boolean | null;
 }
 
 interface WireHallBrief {
@@ -53,6 +57,34 @@ interface WireShowcase {
 interface WireShowcaseBrief {
   id: number;
   showcase_number?: number | null;
+  name?: string | null;
+}
+
+/**
+ * Расположение предмета готовой строкой + структурой (с 31.08.2026).
+ *
+ * Объект присутствует всегда и пустеет внутрь — но только на обновлённом
+ * бэкенде: развёрнутый прод его пока не отдаёт вовсе, поэтому поле
+ * необязательное, а маппер откатывается на legacy-дубли `hall`/`showcase`.
+ */
+interface WireExhibitLocation {
+  hall_id?: number | null;
+  hall_number?: number | null;
+  hall_name?: string | null;
+  showcase_id?: number | null;
+  showcase_number?: number | null;
+  showcase_name?: string | null;
+  /** «Зал 4 «Синяя гостиная», витрина 5» — плашка над названием. */
+  text?: string | null;
+  /** «в зале 4 «Синяя гостиная», витрина 5» — оборот для ответа гида. */
+  text_in?: string | null;
+}
+
+/** «Фирма и мастер»: `text` — дословный `master_name`, части — его разбор. */
+interface WireExhibitMaker {
+  text?: string | null;
+  firm?: string | null;
+  master?: string | null;
 }
 
 interface WireExhibitSummary {
@@ -85,6 +117,11 @@ interface WireExhibit {
   model_3d_embed?: string | null;
   audio_url?: string | null;
   source_url?: string | null;
+  origin_place?: string | null;
+  location?: WireExhibitLocation | null;
+  maker?: WireExhibitMaker | null;
+  // Legacy-дубли location.*: бэкенд оставил их специально, и на текущем проде
+  // это единственный источник зала и витрины.
   hall?: WireHallBrief | null;
   showcase?: WireShowcaseBrief | null;
 }
@@ -186,6 +223,8 @@ function mapHall(h: WireHall): Hall {
     hallNumber: h.hall_number ?? undefined,
     name: h.name ?? undefined,
     description: h.description ?? undefined,
+    descriptionPreview: h.description_preview ?? undefined,
+    descriptionHasMore: h.description_has_more ?? undefined,
     level: h.level ?? undefined,
     coverImageUrl: h.cover_image_url ?? undefined,
     showcaseCount: h.showcase_count ?? undefined,
@@ -229,7 +268,10 @@ function mapExhibit(e: WireExhibit): Exhibit {
     labelSlug: e.label_slug ?? undefined,
     name: e.name,
     yearCreated: e.year_created ?? undefined,
-    masterName: e.master_name ?? undefined,
+    originPlace: e.origin_place ?? undefined,
+    // `maker.text` — дословная копия master_name; legacy-поле остаётся запасным
+    // на время, пока обновлённый бэкенд не развёрнут.
+    masterName: e.maker?.text ?? e.master_name ?? undefined,
     material: e.material ?? undefined,
     techniques: e.techniques ?? undefined,
     shortDescription: e.short_description ?? undefined,
@@ -238,9 +280,15 @@ function mapExhibit(e: WireExhibit): Exhibit {
     model3dEmbed: e.model_3d_embed ?? undefined,
     audioUrl: e.audio_url ?? undefined,
     sourceUrl: e.source_url ?? undefined,
-    hallId: e.hall?.id ?? undefined,
-    showcaseId: e.showcase?.id ?? undefined,
-    showcaseNumber: e.showcase?.showcase_number ?? undefined,
+    // Расположение: сначала `location`, затем legacy-дубли `hall`/`showcase`.
+    // Оба источника несут одно и то же — но `location` есть только на
+    // обновлённом бэкенде, а `hall`/`showcase` бэкенд обещал не удалять.
+    locationText: e.location?.text ?? undefined,
+    hallId: e.location?.hall_id ?? e.hall?.id ?? undefined,
+    hallNumber: e.location?.hall_number ?? e.hall?.hall_number ?? undefined,
+    hallName: e.location?.hall_name ?? e.hall?.name ?? undefined,
+    showcaseId: e.location?.showcase_id ?? e.showcase?.id ?? undefined,
+    showcaseNumber: e.location?.showcase_number ?? e.showcase?.showcase_number ?? undefined,
   };
 }
 
