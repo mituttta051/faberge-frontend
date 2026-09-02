@@ -112,7 +112,13 @@ export default function ExhibitsAdminPage() {
 
   function handleSubmit(input: ExhibitInput) {
     if (editingId !== null) {
-      updateMut.mutate({ id: editingId, input }, { onSuccess: () => setFormOpen(false) });
+      // `previous` — та же карточка, на которой открыли форму: по ней считается
+      // дифф, и в PATCH уходят только изменённые поля. Без неё сохранение
+      // обнуляло всё, чего в форме нет.
+      updateMut.mutate(
+        { id: editingId, input, previous: editingExhibit },
+        { onSuccess: () => setFormOpen(false) },
+      );
     } else {
       // Бесшовно: после создания переходим в режим редактирования того же
       // экспоната (не закрывая модалку), чтобы сразу стала доступна загрузка фото.

@@ -149,21 +149,56 @@ function showcaseToWire(input: ShowcaseInput) {
   };
 }
 
-function exhibitToWire(input: ExhibitInput) {
-  return {
-    showcase_id: input.showcaseId ?? null,
-    hall_id: input.hallId ?? null,
-    label_slug: input.labelSlug ?? null,
-    exhibit_number: input.exhibitNumber ?? null,
-    name: input.name,
-    year_created: input.yearCreated ?? null,
-    master_name: input.masterName ?? null,
-    material: input.material ?? null,
-    techniques: input.techniques ?? null,
-    short_description: input.shortDescription ?? null,
-    image_url: input.photoUrl ?? null,
-    raw_history: input.rawHistory ?? null,
-  };
+/** Поля формы экспоната → ключи wire-контракта. Порядок задаёт порядок в теле запроса. */
+const EXHIBIT_WIRE_KEYS = {
+  showcaseId: "showcase_id",
+  hallId: "hall_id",
+  labelSlug: "label_slug",
+  exhibitNumber: "exhibit_number",
+  name: "name",
+  yearCreated: "year_created",
+  masterName: "master_name",
+  material: "material",
+  techniques: "techniques",
+  shortDescription: "short_description",
+  photoUrl: "image_url",
+  rawHistory: "raw_history",
+} as const satisfies Record<keyof ExhibitInput, string>;
+
+/** Полное тело — для POST: у нового экспоната сравнивать не с чем. */
+function exhibitToWire(input: ExhibitInput): Record<string, unknown> {
+  const wire: Record<string, unknown> = {};
+  for (const [field, key] of Object.entries(EXHIBIT_WIRE_KEYS)) {
+    wire[key] = input[field as keyof ExhibitInput] ?? null;
+  }
+  return wire;
+}
+
+/**
+ * Тело PATCH — только те поля, которые администратор действительно изменил.
+ *
+ * Раньше сохранение отправляло весь набор полей с `null` вместо пустых, то есть
+ * PATCH работал как полная перезапись: всё, чего не было в состоянии формы,
+ * обнулялось на сервере. Так у экспоната пропадали фото, материалы и описание
+ * (фидбэк заказчика 31.08.2026, раздел «Административная панель»). Классический
+ * случай — главное фото: им владеет галерея ниже формы, поле «URL фото» о
+ * загрузке не знало и возвращало поверх неё старое (пустое) значение.
+ *
+ * Диффом снимается вся ветка целиком: нетронутое поле в запрос не попадает и
+ * затереться не может. Осознанная очистка при этом работает — очищенное поле
+ * отличается от прежнего значения и уезжает явным `null`.
+ */
+function exhibitPatchToWire(
+  input: ExhibitInput,
+  previous: Partial<ExhibitInput>,
+): Record<string, unknown> {
+  const wire: Record<string, unknown> = {};
+  for (const [field, key] of Object.entries(EXHIBIT_WIRE_KEYS)) {
+    const next = input[field as keyof ExhibitInput] ?? null;
+    const prev = previous[field as keyof ExhibitInput] ?? null;
+    if (next !== prev) wire[key] = next;
+  }
+  return wire;
 }
 
 // ============================
@@ -285,12 +320,22 @@ export async function createExhibit(input: ExhibitInput): Promise<AdminExhibit> 
   );
 }
 
-export async function updateExhibit(id: number, input: ExhibitInput): Promise<AdminExhibit> {
+/**
+ * `previous` — карточка, на которой открывали форму. Без неё отправляется весь
+ * набор полей, и любое поле, которого нет в форме, обнулится: вызывать так
+ * можно, только когда форма заведомо держит экспонат целиком.
+ */
+export async function updateExhibit(
+  id: number,
+  input: ExhibitInput,
+  previous?: Partial<ExhibitInput>,
+): Promise<AdminExhibit> {
+  const json = previous ? exhibitPatchToWire(input, previous) : exhibitToWire(input);
+  // Ничего не изменилось (например, закрыли форму после загрузки фото) — пустой
+  // PATCH дёргать незачем, отдаём актуальную карточку с сервера.
+  if (Object.keys(json).length === 0) return getAdminExhibit(id);
   return mapAdminExhibit(
-    await request<WireAdminExhibit>(`/admin/exhibits/${id}`, {
-      method: "PATCH",
-      json: exhibitToWire(input),
-    }),
+    await request<WireAdminExhibit>(`/admin/exhibits/${id}`, { method: "PATCH", json }),
   );
 }
 

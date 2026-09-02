@@ -44,6 +44,22 @@ export function ExhibitForm({
   const [photoUrl, setPhotoUrl] = React.useState(initial?.photoUrl ?? "");
   const [rawHistory, setRawHistory] = React.useState(initial?.rawHistory ?? "");
 
+  // Главным фото владеет галерея ниже: загрузка с галочкой «сделать главным»
+  // меняет image_url на сервере и сбрасывает кэш карточки. Форма при этом не
+  // перемонтируется (её key — id экспоната), и поле «URL фото» оставалось с
+  // прежним, обычно пустым значением — а «Сохранить» возвращало его поверх
+  // только что загруженного фото (фидбэк заказчика 31.08.2026, раздел «АП»).
+  //
+  // Поэтому следим не за самим initial, а за сменой его photoUrl: набранную
+  // вручную ссылку перетирать нельзя, а пришедшую из галереи — нужно.
+  const serverPhotoUrl = initial?.photoUrl ?? "";
+  const knownServerPhotoUrl = React.useRef(serverPhotoUrl);
+  React.useEffect(() => {
+    if (serverPhotoUrl === knownServerPhotoUrl.current) return;
+    knownServerPhotoUrl.current = serverPhotoUrl;
+    setPhotoUrl(serverPhotoUrl);
+  }, [serverPhotoUrl]);
+
   // Витрины, доступные для выбранного зала.
   const hallShowcases = React.useMemo(
     () => showcases.filter((s) => s.hallId === Number(hallId)),
@@ -113,10 +129,7 @@ export function ExhibitForm({
           <Input value={exhibitNumber} onChange={(e) => setExhibitNumber(e.target.value)} />
         </Field>
         <Field label="Датировка" hint="как в путеводителе: «1899–1903», «конец XIX века»">
-          <Input
-            value={yearCreated}
-            onChange={(e) => setYearCreated(e.target.value)}
-          />
+          <Input value={yearCreated} onChange={(e) => setYearCreated(e.target.value)} />
         </Field>
       </div>
 
@@ -141,7 +154,11 @@ export function ExhibitForm({
         />
       </Field>
       <Field label="URL фото" hint="Можно вставить ссылку вручную или загрузить фото ниже.">
-        <Input value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} placeholder="https://…" />
+        <Input
+          value={photoUrl}
+          onChange={(e) => setPhotoUrl(e.target.value)}
+          placeholder="https://…"
+        />
       </Field>
 
       {exhibitId !== undefined ? (
@@ -152,7 +169,10 @@ export function ExhibitForm({
         </p>
       )}
 
-      <Field label="raw_history (факты для LLM)" hint="Буллиты фактов: мастер, заказчик, материалы…">
+      <Field
+        label="raw_history (факты для LLM)"
+        hint="Буллиты фактов: мастер, заказчик, материалы…"
+      >
         <Textarea rows={4} value={rawHistory} onChange={(e) => setRawHistory(e.target.value)} />
       </Field>
 

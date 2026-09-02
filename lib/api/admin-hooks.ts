@@ -135,10 +135,23 @@ export function useCreateExhibit() {
   });
 }
 
+/**
+ * `previous` — карточка, с которой открывали форму: по ней считается дифф, и в
+ * PATCH уезжают только изменённые поля. Не передать её значит согласиться, что
+ * все поля вне формы обнулятся.
+ */
 export function useUpdateExhibit() {
   const invalidate = useInvalidateCatalog();
   return useMutation({
-    mutationFn: ({ id, input }: { id: number; input: ExhibitInput }) => updateExhibit(id, input),
+    mutationFn: ({
+      id,
+      input,
+      previous,
+    }: {
+      id: number;
+      input: ExhibitInput;
+      previous?: Partial<ExhibitInput>;
+    }) => updateExhibit(id, input, previous),
     onSuccess: invalidate,
   });
 }
@@ -167,8 +180,15 @@ export function useUploadExhibitMedia() {
   const qc = useQueryClient();
   const invalidate = useInvalidateCatalog();
   return useMutation({
-    mutationFn: ({ exhibitId, file, isPrimary }: { exhibitId: number; file: File; isPrimary?: boolean }) =>
-      uploadExhibitMedia(exhibitId, file, isPrimary),
+    mutationFn: ({
+      exhibitId,
+      file,
+      isPrimary,
+    }: {
+      exhibitId: number;
+      file: File;
+      isPrimary?: boolean;
+    }) => uploadExhibitMedia(exhibitId, file, isPrimary),
     onSuccess: (_data, { exhibitId }) => {
       qc.invalidateQueries({ queryKey: ["admin", "exhibit-media", exhibitId] });
       invalidate();
