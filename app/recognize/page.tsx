@@ -38,6 +38,11 @@ export default function RecognizePage() {
       track({
         type: "recognition",
         exhibitId: result.exhibit?.id,
+        // Зал распознанного экспоната: без него покрытие распознавания по залам
+        // из накопленной телеметрии не посчитать (вопрос бэкенда от 01.09.2026).
+        // У неудачной попытки зала нет и взяться ему неоткуда — посетитель как
+        // раз и не смог сказать, что именно он снял.
+        hallId: result.exhibit?.hallId,
         labelSlug: result.labelSlug,
         props: {
           recognized: ok,
