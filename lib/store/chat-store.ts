@@ -15,6 +15,16 @@ export interface ChatSession {
   serverSessionId?: string;
   /** Текущий контекст: последний экспонат/зал/label, о котором говорим. */
   context?: ChatContext;
+  /**
+   * Контекст, который, насколько мы знаем, уже держит серверная сессия.
+   *
+   * Нужен, чтобы не слать `context` в каждой реплике: по договорённости от
+   * 28.07.2026 присланное поле — это команда «поставь такой контекст», а
+   * `{}` — команда «сбрось». Мы же слали его всегда, и общий чат уходил с
+   * `context: {}` при каждом сообщении, то есть сбрасывал сессию на каждой
+   * реплике. Поле опускается, пока контекст не изменился.
+   */
+  sentContext?: ChatContext;
   messages: ChatMessage[];
   createdAt: string;
   updatedAt: string;
@@ -26,6 +36,8 @@ interface ChatStore {
   /** Гарантирует, что тред существует, и возвращает его. */
   getOrCreate: () => ChatSession;
   setContext: (context: ChatContext) => void;
+  /** Запомнить контекст, принятый сервером. `undefined` — «сервер не держит ничего». */
+  setSentContext: (context: ChatContext | undefined) => void;
   addMessage: (message: ChatMessage) => void;
   updateMessage: (messageId: string, patch: Partial<ChatMessage>) => void;
   setServerSessionId: (serverSessionId: string) => void;
@@ -40,6 +52,18 @@ function nowIso(): string {
 function newId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
   return `chat_${Math.random().toString(36).slice(2)}`;
+}
+
+/**
+ * Один ли это контекст с точки зрения сервера.
+ *
+ * `undefined` и «объект, у которого все поля пустые» — одно и то же состояние
+ * «сессия не привязана ни к чему»: первое означает «мы ничего не присылали»,
+ * второе — «мы прислали сброс, и он уже применён». Различать их незачем, а вот
+ * посылать сброс поверх сброса — это и есть баг с пропадающими подсказками.
+ */
+export function contextEquals(a?: ChatContext, b?: ChatContext): boolean {
+  return a?.exhibitId === b?.exhibitId && a?.hallId === b?.hallId && a?.labelSlug === b?.labelSlug;
 }
 
 function emptyChat(): ChatSession {
@@ -62,6 +86,12 @@ export const useChatStore = create<ChatStore>()(
 
       setContext(context) {
         set((s) => (s.chat ? { chat: { ...s.chat, context, updatedAt: nowIso() } } : s));
+      },
+
+      setSentContext(sentContext) {
+        // Без updatedAt: это служебная отметка о состоянии сессии, а не правка
+        // треда — «последнее изменение» от неё сдвигаться не должно.
+        set((s) => (s.chat ? { chat: { ...s.chat, sentContext } } : s));
       },
 
       addMessage(message) {
@@ -89,7 +119,9 @@ export const useChatStore = create<ChatStore>()(
       setServerSessionId(serverSessionId) {
         set((s) => {
           if (!s.chat || s.chat.serverSessionId === serverSessionId) return s;
-          return { chat: { ...s.chat, serverSessionId } };
+          // Сессия сменилась (прежняя истекла) — что за контекст в новой,
+          // мы не знаем. Отметку снимаем, следующая реплика пошлёт его заново.
+          return { chat: { ...s.chat, serverSessionId, sentContext: undefined } };
         });
       },
 

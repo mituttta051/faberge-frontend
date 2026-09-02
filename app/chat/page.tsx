@@ -19,7 +19,7 @@ import {
   useRelatedExhibits,
 } from "@/lib/api/hooks";
 import { getExhibit, getExhibitBySlug } from "@/lib/api/endpoints";
-import { useChatStore } from "@/lib/store/chat-store";
+import { contextEquals, useChatStore } from "@/lib/store/chat-store";
 import { compressImage } from "@/lib/image";
 import { useSafeBack } from "@/lib/hooks/use-safe-back";
 import { RelatedRecommendations } from "@/components/chat/related-recommendations";
@@ -197,12 +197,29 @@ function ChatContent() {
       createdAt: new Date().toISOString(),
     });
 
+    // `context` в теле запроса — это команда «поставь такой контекст», а `{}` —
+    // «сбрось» (договорённость от 28.07.2026). Поэтому шлём поле, только когда
+    // контекст изменился: раньше оно уходило в каждой реплике, и общий чат при
+    // каждом сообщении сбрасывал серверную сессию — вместе с ней терялись и
+    // подсказки (п. II-7 фидбэка 31.08.2026).
+    const contextChanged = !contextEquals(context, session?.sentContext);
+
     chat.mutate(
-      { message: text, sessionId: session?.serverSessionId, context, maxQuestions: 3 },
+      {
+        message: text,
+        sessionId: session?.serverSessionId,
+        context: contextChanged ? (context ?? {}) : undefined,
+        maxQuestions: 3,
+      },
       {
         onSuccess: (res) => {
           const st = useChatStore.getState();
+          // Сравниваем до записи: сервер мог завести новую сессию вместо
+          // истёкшей, и тогда наш контекст в ней не окажется — если в этой
+          // реплике мы его не посылали, отметку ставить нельзя.
+          const sameSession = st.chat?.serverSessionId === res.sessionId;
           st.setServerSessionId(res.sessionId);
+          st.setSentContext(sameSession || contextChanged ? context : undefined);
           st.addMessage({
             id: uid("msg"),
             role: "assistant",
