@@ -6,11 +6,11 @@ import { Screen } from "@/components/ui/screen";
 import { AppBar } from "@/components/ui/app-bar";
 import { useSafeBack } from "@/lib/hooks/use-safe-back";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AudioButton } from "@/components/audio/audio-button";
 import { ChatEntryButton } from "@/components/chat/chat-entry-button";
 import { useExhibit, useRelatedExhibits } from "@/lib/api/hooks";
+import { exhibitLocation } from "@/lib/labels";
 import { markExhibitSource, useTrackView } from "@/lib/telemetry";
 
 const ELLIPSIS_RE = /(?:…|\.{3})\s*$/;
@@ -28,14 +28,15 @@ export function ExhibitView({ exhibitId }: { exhibitId: number }) {
   const { data: exhibit, isLoading } = useExhibit(exhibitId);
   const { data: related } = useRelatedExhibits(exhibitId);
   useTrackView("exhibit_view", exhibit?.id);
+  const location = exhibit ? exhibitLocation(exhibit) : null;
+  // «Дата создания и место» с макета музея — одной строкой: место без даты
+  // встречается, дата без места — сплошь и рядом, а отдельная строка «Место
+  // создания» ради одного города ломала бы ритм списка.
+  const created = [exhibit?.yearCreated, exhibit?.originPlace].filter(Boolean).join(", ") || null;
 
   return (
     <Screen>
-      <AppBar
-        onBack={safeBack}
-        title={exhibit?.name ?? "Экспонат"}
-        right={<ChatEntryButton />}
-      />
+      <AppBar onBack={safeBack} title={exhibit?.name ?? "Экспонат"} right={<ChatEntryButton />} />
       <main className="flex flex-1 flex-col gap-6">
         {isLoading && (
           <>
@@ -58,26 +59,54 @@ export function ExhibitView({ exhibitId }: { exhibitId: number }) {
               />
             )}
             <div className="flex flex-col gap-3 px-6">
-              <div className="flex flex-wrap items-center gap-2">
-                {exhibit.showcaseNumber !== undefined && (
-                  <Badge>Витрина № {exhibit.showcaseNumber}</Badge>
+              {/* Название дублировало заголовок в шапке — заказчик вычеркнул его
+                  на макете карточки (фидбэк 31.08.2026, п.1.2). Оставляем h1
+                  скрытым: у страницы должен быть заголовок для скринридера и
+                  поисковика, а видимый висит в AppBar. */}
+              <h1 className="sr-only">{exhibit.name}</h1>
+
+              {/* Порядок полей — с макета заказчика: расположение → дата и
+                  место → фирма и мастер → материалы → техники → описание.
+                  Одинаковый на всех карточках, чтобы посетитель искал нужное на
+                  одном и том же месте. */}
+              <dl className="text-muted-foreground flex flex-col gap-1.5 text-xs">
+                {location && (
+                  <div>
+                    <dt className="inline font-medium">Расположение:</dt>{" "}
+                    <dd className="inline">{location}</dd>
+                  </div>
                 )}
-                {exhibit.yearCreated && <Badge variant="outline">{exhibit.yearCreated}</Badge>}
+                {created && (
+                  <div>
+                    <dt className="inline font-medium">Дата создания:</dt>{" "}
+                    <dd className="inline">{created}</dd>
+                  </div>
+                )}
+                {/* Одна строка, а не две: фирма и мастер лежат в одном поле и
+                    приходят с собственными словами-маркерами («Фирма К. Фаберже,
+                    мастер М. Перхин») — под заголовком «Фирма:» они бы
+                    задвоились. Бэкенд отдаёт и разобранные части; разделять ли
+                    их — открытый вопрос к музею. */}
                 {exhibit.masterName && (
-                  <span className="text-muted-foreground text-xs">{exhibit.masterName}</span>
+                  <div>
+                    <dt className="inline font-medium">Фирма и мастер:</dt>{" "}
+                    <dd className="inline">{exhibit.masterName}</dd>
+                  </div>
                 )}
-              </div>
-              <h1 className="font-display text-2xl tracking-tight">{exhibit.name}</h1>
-              {exhibit.material && (
-                <p className="text-muted-foreground text-xs">
-                  <span className="font-medium">Материалы:</span> {exhibit.material}
-                </p>
-              )}
-              {exhibit.techniques && (
-                <p className="text-muted-foreground text-xs">
-                  <span className="font-medium">Техники:</span> {exhibit.techniques}
-                </p>
-              )}
+                {exhibit.material && (
+                  <div>
+                    <dt className="inline font-medium">Материалы:</dt>{" "}
+                    <dd className="inline">{exhibit.material}</dd>
+                  </div>
+                )}
+                {exhibit.techniques && (
+                  <div>
+                    <dt className="inline font-medium">Техники:</dt>{" "}
+                    <dd className="inline">{exhibit.techniques}</dd>
+                  </div>
+                )}
+              </dl>
+
               {exhibit.shortDescription && (
                 <p className="text-sm leading-relaxed">
                   {stripTrailingEllipsis(exhibit.shortDescription)}
@@ -88,7 +117,7 @@ export function ExhibitView({ exhibitId }: { exhibitId: number }) {
                         href={exhibit.sourceUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-accent hover:underline whitespace-nowrap"
+                        className="text-accent whitespace-nowrap hover:underline"
                       >
                         читать полностью →
                       </a>
