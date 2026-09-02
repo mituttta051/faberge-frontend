@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AccordionSection } from "@/components/ui/accordion-section";
+import { ExpandableText } from "@/components/ui/expandable-text";
 import { AudioButton } from "@/components/audio/audio-button";
 import { ChatEntryButton } from "@/components/chat/chat-entry-button";
 import { useHall, useHallShowcases, useHallExhibits } from "@/lib/api/hooks";
@@ -69,9 +70,17 @@ export function HallView({ hallId }: { hallId: number }) {
               </div>
               <h1 className="font-display mt-3 text-2xl tracking-tight">{hallTitle(hall)}</h1>
               {hall.description && (
-                <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
-                  {hall.description}
-                </p>
+                <div className="mt-3">
+                  <ExpandableText
+                    className="text-muted-foreground"
+                    moreLabel="Подробнее о зале"
+                    preview={hall.descriptionPreview}
+                    hasMore={hall.descriptionHasMore}
+                    lines={4}
+                  >
+                    {hall.description}
+                  </ExpandableText>
+                </div>
               )}
             </div>
 
@@ -94,33 +103,38 @@ export function HallView({ hallId }: { hallId: number }) {
               </Button>
             </Link>
 
-            <section>
-              <h2 className="text-muted-foreground text-xs tracking-widest uppercase">
-                Витрины ({showcases?.length ?? 0})
-              </h2>
-              {/* Витрины раскрываются на месте: сплошной список экспонатов зала
+            {/* Зал без витрин и без экспонатов — «Парадная лестница» и прочие
+                залы-рассказы. Пустой заголовок «Витрины (0)» с пустой рамкой
+                под ним читается как поломка, поэтому секции просто нет. */}
+            {((showcases?.length ?? 0) > 0 || loose.length > 0) && (
+              <section>
+                <h2 className="text-muted-foreground text-xs tracking-widest uppercase">
+                  Витрины ({showcases?.length ?? 0})
+                </h2>
+                {/* Витрины раскрываются на месте: сплошной список экспонатов зала
                   заказчик просил заменить составом каждой витрины
                   (баг-репорт 06.08.2026, «Окно зала»). */}
-              <div className="border-border mt-3 border">
-                {[...(showcases ?? [])].sort(byShowcaseNumber).map((s) => (
-                  <ShowcaseSection
-                    key={s.id}
-                    showcase={s}
-                    hallId={hall.id}
-                    items={items.filter((e) => e.showcaseId === s.id).sort(byExhibitNumber)}
-                  />
-                ))}
-                {loose.length > 0 && (
-                  <AccordionSection
-                    title="Не в витринах"
-                    meta={loose.length}
-                    persistKey={`hall_${hall.id}_loose`}
-                  >
-                    <ExhibitList items={loose} />
-                  </AccordionSection>
-                )}
-              </div>
-            </section>
+                <div className="border-border mt-3 border">
+                  {[...(showcases ?? [])].sort(byShowcaseNumber).map((s) => (
+                    <ShowcaseSection
+                      key={s.id}
+                      showcase={s}
+                      hallId={hall.id}
+                      items={items.filter((e) => e.showcaseId === s.id).sort(byExhibitNumber)}
+                    />
+                  ))}
+                  {loose.length > 0 && (
+                    <AccordionSection
+                      title="Не в витринах"
+                      meta={loose.length}
+                      persistKey={`hall_${hall.id}_loose`}
+                    >
+                      <ExhibitList items={loose} />
+                    </AccordionSection>
+                  )}
+                </div>
+              </section>
+            )}
           </>
         )}
       </main>
