@@ -48,6 +48,7 @@ interface WireAdminExhibit {
   exhibit_number?: string | null;
   name: string;
   year_created?: string | null;
+  origin_place?: string | null;
   master_name?: string | null;
   material?: string | null;
   techniques?: string | null;
@@ -117,6 +118,7 @@ function mapAdminExhibit(e: WireAdminExhibit): AdminExhibit {
     exhibitNumber: e.exhibit_number ?? undefined,
     name: e.name,
     yearCreated: e.year_created ?? undefined,
+    originPlace: e.origin_place ?? undefined,
     masterName: e.master_name ?? undefined,
     material: e.material ?? undefined,
     techniques: e.techniques ?? undefined,
@@ -157,6 +159,7 @@ const EXHIBIT_WIRE_KEYS = {
   exhibitNumber: "exhibit_number",
   name: "name",
   yearCreated: "year_created",
+  originPlace: "origin_place",
   masterName: "master_name",
   material: "material",
   techniques: "techniques",
