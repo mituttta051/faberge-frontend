@@ -213,6 +213,7 @@ function adminExhibitWire(e: MockExhibit) {
     label_slug: e.labelSlug,
     name: e.name,
     year_created: e.yearCreated ?? null,
+    origin_place: e.originPlace ?? null,
     master_name: e.masterName ?? null,
     material: e.material ?? null,
     short_description: e.shortDescription ?? null,
@@ -245,6 +246,7 @@ interface WireExhibitBody {
   label_slug?: string | null;
   name?: string;
   year_created?: string | null;
+  origin_place?: string | null;
   master_name?: string | null;
   material?: string | null;
   short_description?: string | null;
@@ -546,6 +548,7 @@ export const handlers = [
       labelSlug: body.label_slug ?? `exhibit_${id}`,
       name: body.name ?? "",
       yearCreated: body.year_created ?? undefined,
+      originPlace: body.origin_place ?? undefined,
       masterName: body.master_name ?? undefined,
       material: body.material ?? undefined,
       shortDescription: body.short_description ?? "",
@@ -566,6 +569,7 @@ export const handlers = [
     if (body.label_slug !== undefined) exhibit.labelSlug = body.label_slug ?? exhibit.labelSlug;
     if (body.name !== undefined) exhibit.name = body.name;
     if (body.year_created !== undefined) exhibit.yearCreated = body.year_created ?? undefined;
+    if (body.origin_place !== undefined) exhibit.originPlace = body.origin_place ?? undefined;
     if (body.master_name !== undefined) exhibit.masterName = body.master_name ?? undefined;
     if (body.material !== undefined) exhibit.material = body.material ?? undefined;
     if (body.short_description !== undefined)

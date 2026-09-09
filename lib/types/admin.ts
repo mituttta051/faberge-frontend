@@ -42,6 +42,8 @@ export interface ExhibitInput {
   name: string;
   /** Датировка строкой, как в путеводителе: «1899–1903», «конец XIX века». */
   yearCreated?: string;
+  /** Место создания («Санкт-Петербург», «Москва») — на бэке `origin_place`. */
+  originPlace?: string;
   masterName?: string;
   material?: string;
   /** Техники исполнения — отдельным полем, не внутри материалов. */

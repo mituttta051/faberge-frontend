@@ -37,6 +37,7 @@ export function ExhibitForm({
   const [labelSlug, setLabelSlug] = React.useState(initial?.labelSlug ?? "");
   const [exhibitNumber, setExhibitNumber] = React.useState(initial?.exhibitNumber ?? "");
   const [yearCreated, setYearCreated] = React.useState(initial?.yearCreated ?? "");
+  const [originPlace, setOriginPlace] = React.useState(initial?.originPlace ?? "");
   const [masterName, setMasterName] = React.useState(initial?.masterName ?? "");
   const [material, setMaterial] = React.useState(initial?.material ?? "");
   const [techniques, setTechniques] = React.useState(initial?.techniques ?? "");
@@ -82,6 +83,7 @@ export function ExhibitForm({
       labelSlug: labelSlug.trim() || undefined,
       exhibitNumber: exhibitNumber.trim() || undefined,
       yearCreated: yearCreated.trim() || undefined,
+      originPlace: originPlace.trim() || undefined,
       masterName: masterName.trim() || undefined,
       material: material.trim() || undefined,
       techniques: techniques.trim() || undefined,
@@ -132,6 +134,12 @@ export function ExhibitForm({
           <Input value={yearCreated} onChange={(e) => setYearCreated(e.target.value)} />
         </Field>
       </div>
+
+      {/* Поле появилось на бэке 31.08.2026 (п. I-2 фидбэка заказчика); на прод
+          город залили скриптом, минуя админку, и править его было негде. */}
+      <Field label="Место создания" hint="«Санкт-Петербург», «Москва» — показывается рядом с датировкой">
+        <Input value={originPlace} onChange={(e) => setOriginPlace(e.target.value)} />
+      </Field>
 
       <Field label="Label slug (YOLO)" hint="напр. faberge_egg_winter">
         <Input value={labelSlug} onChange={(e) => setLabelSlug(e.target.value)} />
