@@ -90,7 +90,9 @@ export function ExpandableText({
     <div>
       <p
         ref={ref}
-        className={cn("text-sm leading-relaxed", className)}
+        // whitespace-pre-line: длинные описания приходят разбитыми на абзацы
+        // (Парадная лестница, Белая гостиная) — без него они слипаются в стену текста.
+        className={cn("text-sm leading-relaxed whitespace-pre-line", className)}
         style={
           expanded || serverCut
             ? undefined
