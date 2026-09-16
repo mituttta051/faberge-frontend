@@ -643,12 +643,22 @@ export const handlers = [
     }
     const exhibit = pickRandom(exhibits);
     const confidence = 0.85 + Math.random() * 0.14;
+    // Даже при уверенном ответе бэк отдаёт весь ранжированный список: первым —
+    // найденный экспонат, за ним следующие по вероятности (запрос музея
+    // 16.09.2026). Экран показывает их блоком «Или, может быть, это».
+    const others = exhibits.filter((e) => e.id !== exhibit.id).slice(0, 2);
     return HttpResponse.json({
       recognized: true,
       label_slug: exhibit.labelSlug,
       confidence,
       exhibit: exhibitWire(exhibit),
-      candidates: [],
+      candidates: [exhibit, ...others].map((e, i) => ({
+        label_slug: e.labelSlug,
+        name: e.name,
+        confidence: i === 0 ? confidence : Math.round((0.55 - (i - 1) * 0.08) * 100) / 100,
+        exhibit_id: e.id,
+        thumbnail_url: e.photoUrl ?? null,
+      })),
       request_id: crypto.randomUUID(),
       processing_ms: 300 + Math.floor(Math.random() * 200),
     });

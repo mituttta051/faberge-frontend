@@ -10,6 +10,7 @@ import { useSafeBack } from "@/lib/hooks/use-safe-back";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { CameraCapture } from "@/components/camera/camera-capture";
+import { CandidateList } from "@/components/recognize/candidate-list";
 import { useRecognizeExhibit } from "@/lib/api/hooks";
 import { markExhibitSource, track } from "@/lib/telemetry";
 
@@ -71,6 +72,11 @@ export default function RecognizePage() {
 
   const exhibit = recognize.data?.exhibit;
   const candidates = recognize.data?.candidates ?? [];
+  // При уверенном ответе первый кандидат — это сам найденный экспонат; остальные
+  // модель ранжировала следом по вероятности. Показываем их и на удачном экране:
+  // похожие предметы в витрине посетитель различает хуже модели, и второй вариант
+  // часто и есть то, что он снимал (запрос музея 16.09.2026).
+  const alternatives = candidates.filter((c) => c.labelSlug !== exhibit?.labelSlug);
 
   return (
     <Screen>
@@ -137,6 +143,8 @@ export default function RecognizePage() {
                 Сделать ещё снимок
               </Button>
             </div>
+
+            <CandidateList candidates={alternatives} title="Или, может быть, это" />
           </main>
         </>
       )}
@@ -153,45 +161,7 @@ export default function RecognizePage() {
               </p>
             </div>
 
-            {candidates.length > 0 && (
-              <section>
-                <h2 className="text-muted-foreground text-xs tracking-widest uppercase">
-                  Возможно, это
-                </h2>
-                <ul className="mt-3 flex flex-col gap-2">
-                  {candidates.map((c) => (
-                    <li key={c.labelSlug}>
-                      <Link
-                        href={
-                          c.exhibitId ? `/exhibits/${c.exhibitId}` : `/chat?label=${c.labelSlug}`
-                        }
-                        onClick={() => markExhibitSource("recognition")}
-                        className="group/cand border-border hover:border-foreground/40 flex items-stretch gap-3 border transition-colors"
-                      >
-                        {c.thumbnailUrl ? (
-                          <div className="border-border relative aspect-square w-16 shrink-0 overflow-hidden border-r">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={c.thumbnailUrl}
-                              alt=""
-                              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover/cand:scale-105"
-                            />
-                          </div>
-                        ) : null}
-                        <div className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2">
-                          <span className="group-hover/cand:text-accent min-w-0 flex-1 text-sm leading-snug transition-colors">
-                            {c.name ?? c.labelSlug}
-                          </span>
-                          <span className="text-muted-foreground shrink-0 text-xs">
-                            {Math.round(c.confidence * 100)}%
-                          </span>
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
+            <CandidateList candidates={candidates} title="Возможно, это" />
 
             <div className="mt-2 flex flex-col gap-2">
               <Button fullWidth onClick={handleRetry}>
