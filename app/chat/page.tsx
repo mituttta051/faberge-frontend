@@ -271,6 +271,21 @@ function ChatContent() {
         const st = useChatStore.getState();
         st.setContext({ exhibitId: ex.id, labelSlug: ex.labelSlug });
         const s = await story.mutateAsync({ exhibitId: ex.id, maxQuestions: 4 });
+        // Модель отдаёт ранжированный список, а не один ответ. Следующие по
+        // вероятности варианты показываем и при удачном распознавании: похожие
+        // предметы в витрине посетитель различает хуже модели, и второй вариант
+        // иногда и есть тот, что он снимал (запрос музея 16.09.2026). Ведём
+        // только на существующие карточки — остальные ссылки вели бы в никуда.
+        const alternatives: ChatExhibitRef[] = (res.candidates ?? [])
+          .filter(
+            (c): c is typeof c & { exhibitId: number } =>
+              c.exhibitId !== undefined && c.labelSlug !== ex.labelSlug,
+          )
+          .map((c) => ({
+            id: c.exhibitId,
+            name: c.name ?? c.labelSlug,
+            thumbnailUrl: c.thumbnailUrl,
+          }));
         st.addMessage({
           id: uid("story"),
           role: "assistant",
@@ -278,6 +293,8 @@ function ChatContent() {
           createdAt: new Date().toISOString(),
           suggestions: s.suggestedQuestions,
           exhibit: toPlaque(ex),
+          referencedExhibits: alternatives.length > 0 ? alternatives : undefined,
+          referencedExhibitsLabel: "Или, может быть, это",
         });
       } else {
         // E19 — топ-3 кандидата: у кого есть карточка, показываем плашкой с фото,
